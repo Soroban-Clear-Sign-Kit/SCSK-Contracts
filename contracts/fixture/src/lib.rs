@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Symbol, Vec, token};
+use soroban_sdk::{Address, Env, String, Symbol, Vec, contract, contractimpl, contracttype, token};
 
 #[contracttype]
 pub struct Meta {
@@ -39,3 +39,5 @@ fn do_transfer(env: &Env, from: &Address, token: &Address, to: &Address, amount:
     from.require_auth();
     token::Client::new(env, token).transfer(from, to, amount);
 }
+
+mod test;
