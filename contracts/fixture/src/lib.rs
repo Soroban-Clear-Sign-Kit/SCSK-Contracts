@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, Address, Env, String, Symbol, Vec};
+use soroban_sdk::{contract, contractimpl, Address, Env, String, Symbol, IntoVal};
 
 #[contract]
 pub struct FixtureContract;
