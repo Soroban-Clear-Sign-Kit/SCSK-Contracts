@@ -19,8 +19,7 @@ pub struct Forwarder;
 #[contractimpl]
 impl Forwarder {
     pub fn forward(env: Env, from: Address, token: Address, to: Address, amount: i128) {
-        from.require_auth();
-        token::Client::new(&env, &token).transfer(&from, &to, &amount);
+        do_transfer(&env, &from, &token, &to, &amount);
     }
 
     pub fn forward_with_meta(
@@ -32,7 +31,11 @@ impl Forwarder {
         _meta: Meta,
         _mode: Mode,
     ) {
-        from.require_auth();
-        token::Client::new(&env, &token).transfer(&from, &to, &amount);
+        do_transfer(&env, &from, &token, &to, &amount);
     }
+}
+
+fn do_transfer(env: &Env, from: &Address, token: &Address, to: &Address, amount: &i128) {
+    from.require_auth();
+    token::Client::new(env, token).transfer(from, to, amount);
 }
