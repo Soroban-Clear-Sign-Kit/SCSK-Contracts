@@ -28,7 +28,12 @@ async function simulateAndSave(name: string, tx: any, modifyAuth?: (simResult: a
 
 async function main() {
   const testnetStr = fs.readFileSync(path.join(__dirname, '../testnet.json'), 'utf8');
-  const { alice, aliceSecret, bob, bobSecret, tokenId, contractId } = JSON.parse(testnetStr);
+  const { alice, bob, tokenId, contractId } = JSON.parse(testnetStr);
+
+  const envStr = fs.readFileSync(path.join(__dirname, '../.env'), 'utf8');
+  const env = Object.fromEntries(envStr.split('\n').filter(Boolean).map(line => line.split('=')));
+  const aliceSecret = env.ALICE_SECRET;
+  const bobSecret = env.BOB_SECRET;
 
   const contract = new Contract(contractId);
   const token = new Contract(tokenId);

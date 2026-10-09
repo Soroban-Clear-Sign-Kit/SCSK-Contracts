@@ -7,3 +7,6 @@ target
 
 # Node.js dependencies (fixture scripts)
 node_modules/
+.env
+testnet.json
+fixtures/testnet.json

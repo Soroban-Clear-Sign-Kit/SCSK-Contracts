@@ -6,7 +6,12 @@ async function main() {
     try {
         const s = new rpc.Server('https://soroban-testnet.stellar.org');
         const testnetData = JSON.parse(fs.readFileSync('../testnet.json', 'utf8'));
-        const { aliceSecret, bobSecret, assetCode } = testnetData;
+        const { assetCode } = testnetData;
+
+        const envStr = fs.readFileSync('../.env', 'utf8');
+        const env = Object.fromEntries(envStr.split('\n').filter(Boolean).map(line => line.split('=')));
+        const aliceSecret = env.ALICE_SECRET;
+        const bobSecret = env.BOB_SECRET;
 
         const aliceKey = Keypair.fromSecret(aliceSecret);
         const bobKey = Keypair.fromSecret(bobSecret);

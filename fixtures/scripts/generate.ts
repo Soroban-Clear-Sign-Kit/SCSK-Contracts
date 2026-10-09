@@ -159,10 +159,11 @@ async function main() {
   fs.writeFileSync(path.join(fixturesDir, 'testnet.json'), JSON.stringify({
      rpcUrl: RPC_URL,
      networkPassphrase: NETWORK_PASSPHRASE,
-     adminSecret: admin.secret(),
      adminPublic: admin.publicKey(),
      contractId
   }, null, 2));
+
+  fs.writeFileSync(path.join(fixturesDir, '.env'), `ADMIN_SECRET=${admin.secret()}\n`);
 }
 
 main().catch(console.error);

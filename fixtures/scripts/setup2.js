@@ -5,7 +5,8 @@ const fs = require('fs');
 async function main() {
     try {
         const s = new rpc.Server('https://soroban-testnet.stellar.org');
-        const testnetData = JSON.parse(fs.readFileSync('../testnet.json', 'utf8'));
+        const path = require('path');
+        const testnetData = JSON.parse(fs.readFileSync(path.join(__dirname, '../testnet.json'), 'utf8'));
         const { alice, bob } = testnetData;
 
         // Note: You need Alice and Bob's secret keys. In setup.ps1 we generated them.
@@ -42,12 +43,11 @@ async function main() {
         await s.sendTransaction(tx2);
 
         testnetData.alice = aliceKey.publicKey();
-        testnetData.aliceSecret = aliceKey.secret();
         testnetData.bob = bobKey.publicKey();
-        testnetData.bobSecret = bobKey.secret();
         testnetData.tokenId = asset.contractId('Test SDF Network ; September 2015');
 
-        fs.writeFileSync('../testnet.json', JSON.stringify(testnetData, null, 2));
+        fs.writeFileSync(path.join(__dirname, '../testnet.json'), JSON.stringify(testnetData, null, 2));
+        fs.writeFileSync(path.join(__dirname, '../.env'), `ALICE_SECRET=${aliceKey.secret()}\nBOB_SECRET=${bobKey.secret()}\n`);
         console.log("Done setup2.js");
     } catch(e) {
         console.error(e);

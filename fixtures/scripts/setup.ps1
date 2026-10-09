@@ -25,19 +25,20 @@ Write-Host "Deploying fixture contract..."
 $CONTRACT_ID = stellar contract deploy --wasm ../../target/wasm32v1-none/release/fixture.wasm --source-account alice --network testnet
 Write-Host "Contract ID: $CONTRACT_ID"
 
-Write-Host "Writing testnet.json..."
+Write-Host "Writing testnet.json and .env..."
 $ALICE_SEC = stellar keys show alice
 $BOB_SEC = stellar keys show bob
 $jsonObj = @{
     alice = $ALICE_PUB
-    aliceSecret = $ALICE_SEC
     bob = $BOB_PUB
-    bobSecret = $BOB_SEC
     tokenId = $TOKEN_ID
     contractId = $CONTRACT_ID
     assetCode = $ASSET_CODE
 }
 $jsonObj | ConvertTo-Json | Out-File -Encoding ASCII ../testnet.json
+
+$envContent = "ALICE_SECRET=$ALICE_SEC`nBOB_SECRET=$BOB_SEC`n"
+Set-Content -Path ../.env -Value $envContent -Encoding ASCII
 
 Write-Host "Creating trustline for Bob and minting..."
 node trustline.js
