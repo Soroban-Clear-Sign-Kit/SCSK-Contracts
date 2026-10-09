@@ -1,0 +1,56 @@
+{
+  "cases": [
+    {
+      "name": "empty",
+      "captured": false,
+      "risk": "blocked",
+      "warning": "ENVELOPE_MALFORMED"
+    },
+    {
+      "name": "oversized",
+      "captured": false,
+      "risk": "blocked",
+      "warning": "ENVELOPE_TOO_LARGE"
+    },
+    {
+      "name": "bad_base64",
+      "captured": false,
+      "risk": "blocked",
+      "warning": "ENVELOPE_MALFORMED"
+    },
+    {
+      "name": "truncated",
+      "captured": false,
+      "risk": "blocked",
+      "warning": "ENVELOPE_MALFORMED"
+    },
+    {
+      "name": "wrong_passphrase",
+      "captured": false,
+      "risk": "blocked",
+      "warning": "NETWORK_MISMATCH"
+    },
+    {
+      "name": "fee_bump_unwrap",
+      "captured": false,
+      "risk": "ok"
+    },
+    {
+      "name": "classic_only",
+      "captured": false,
+      "risk": "review",
+      "warning": "CLASSIC_OP_NOT_DECODED"
+    },
+    {
+      "name": "expired_time_bounds",
+      "captured": false,
+      "risk": "blocked",
+      "warning": "TX_EXPIRED"
+    },
+    {
+      "name": "muxed_source",
+      "captured": false,
+      "risk": "ok"
+    }
+  ]
+}
