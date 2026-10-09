@@ -133,6 +133,26 @@ impl Token {
         env.events().publish((Symbol::new(&env, "burn"), from), amount);
     }
 
+    pub fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
+        spender.require_auth();
+        if amount < 0 {
+            panic!("negative amount");
+        }
+        let mut allowance = read_allowance(&env, &from, &spender);
+        if allowance.amount < amount {
+            panic!("insufficient allowance");
+        }
+        allowance.amount -= amount;
+        write_allowance(&env, &from, &spender, allowance.amount, allowance.expiration_ledger);
+        
+        let from_bal = read_balance(&env, &from);
+        if from_bal < amount {
+            panic!("insufficient balance");
+        }
+        write_balance(&env, &from, from_bal - amount);
+        env.events().publish((Symbol::new(&env, "burn"), from), amount);
+    }
+
     pub fn clawback(env: Env, from: Address, amount: i128) {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
         admin.require_auth();
