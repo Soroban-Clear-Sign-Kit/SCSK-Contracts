@@ -1,56 +1,104 @@
 {
-  "cases": [
-    {
-      "name": "empty",
+  "cases": {
+    "sac-transfer": {
       "captured": false,
-      "risk": "blocked",
-      "warning": "ENVELOPE_MALFORMED"
+      "expectedRisk": "ok",
+      "expectedWarnings": []
     },
-    {
-      "name": "oversized",
+    "token-transfer": {
       "captured": false,
-      "risk": "blocked",
-      "warning": "ENVELOPE_TOO_LARGE"
+      "expectedRisk": "ok",
+      "expectedWarnings": []
     },
-    {
-      "name": "bad_base64",
+    "lookalike-transfer": {
       "captured": false,
-      "risk": "blocked",
-      "warning": "ENVELOPE_MALFORMED"
+      "expectedRisk": "ok",
+      "expectedWarnings": []
     },
-    {
-      "name": "truncated",
+    "forward": {
       "captured": false,
-      "risk": "blocked",
-      "warning": "ENVELOPE_MALFORMED"
+      "expectedRisk": "review",
+      "expectedWarnings": ["AUTH_EXTRA_CONTRACT"]
     },
-    {
-      "name": "wrong_passphrase",
+    "forward-intent": {
       "captured": false,
-      "risk": "blocked",
-      "warning": "NETWORK_MISMATCH"
+      "expectedRisk": "ok",
+      "expectedWarnings": []
     },
-    {
-      "name": "fee_bump_unwrap",
+    "forward-with-meta": {
       "captured": false,
-      "risk": "ok"
+      "expectedRisk": "ok",
+      "expectedWarnings": []
     },
-    {
-      "name": "classic_only",
+    "sac-approve": {
       "captured": false,
-      "risk": "review",
-      "warning": "CLASSIC_OP_NOT_DECODED"
+      "expectedRisk": "review",
+      "expectedWarnings": ["ALLOWANCE_GRANTED"]
     },
-    {
-      "name": "expired_time_bounds",
+    "sac-approve-intent": {
       "captured": false,
-      "risk": "blocked",
-      "warning": "TX_EXPIRED"
+      "expectedRisk": "ok",
+      "expectedWarnings": []
     },
-    {
-      "name": "muxed_source",
+    "signed-wrong-network": {
       "captured": false,
-      "risk": "ok"
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["SIGNATURE_INVALID"]
+    },
+    "auth-expired": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["AUTH_EXPIRED"]
+    },
+    "auth-unsigned-entry": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["AUTH_EXTRA_CONTRACT"]
+    },
+    "auth-entry-preimage": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["AUTH_EXTRA_CONTRACT"]
+    },
+    "sim-failure": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["SIMULATION_FAILED"]
+    },
+    "fee-bump": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "classic-payment": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["CLASSIC_OP_NOT_DECODED"]
+    },
+    "syn-silent-transfer": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["EFFECT_EVENT_MISSING"]
+    },
+    "syn-map-event": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "syn-duplicate-nonce": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["AUTH_DUPLICATE_NONCE"]
+    },
+    "syn-rpc-network": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["NETWORK_MISMATCH"]
+    },
+    "syn-no-contract": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["CONTRACT_NOT_FOUND"]
     }
-  ]
+  }
 }
