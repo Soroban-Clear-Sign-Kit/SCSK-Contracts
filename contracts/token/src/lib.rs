@@ -363,6 +363,25 @@ mod test {
             ]
         );
         assert_eq!(client.balance(&user2), 400);
+
+        // Burn from
+        client.approve(&user2, &user1, &50, &100);
+        // Clear events from approve before checking burn_from
+        env.events().all();
+        client.burn_from(&user1, &user2, &50);
+        
+        assert_eq!(
+            env.events().all(),
+            soroban_sdk::vec![
+                &env,
+                (
+                    contract_id.clone(),
+                    (Symbol::new(&env, "burn"), user2.clone()).into_val(&env),
+                    50_i128.into_val(&env)
+                )
+            ]
+        );
+        assert_eq!(client.balance(&user2), 350);
     }
     
     #[test]
