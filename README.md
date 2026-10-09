@@ -8,20 +8,21 @@ This repository contains Soroban smart contracts used for testing, verifying, an
 .
 ├── Cargo.toml
 ├── contracts/
-│   └── hello-world/      # Sample contract verifying basic invocation and return types
+│   ├── fixture/          # Captures nested auth scenarios for Clear-Sign Kit testing
+│   └── token/            # Minimal SEP-41 token implementation and mock USDC
 └── README.md
 ```
 
 ## Prerequisites
 
 - [Rust](https://www.rust-lang.org/) and `cargo` (v1.80+)
-- `wasm32-unknown-unknown` target
+- `wasm32v1-none` target
 - [Stellar CLI](https://developers.stellar.org/docs/tools/developer-tools/cli/stellar-cli) (v22+)
 
 ## Building Contracts
 
 ```bash
-cargo build --target wasm32-unknown-unknown --release
+cargo build --target wasm32v1-none --release
 ```
 
 ## Testing Contracts

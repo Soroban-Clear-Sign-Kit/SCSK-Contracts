@@ -1,0 +1,104 @@
+{
+  "cases": {
+    "sac-transfer": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "token-transfer": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "lookalike-transfer": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "forward": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["AUTH_EXTRA_CONTRACT"]
+    },
+    "forward-intent": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "forward-with-meta": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "sac-approve": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["ALLOWANCE_GRANTED"]
+    },
+    "sac-approve-intent": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "signed-wrong-network": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["SIGNATURE_INVALID"]
+    },
+    "auth-expired": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["AUTH_EXPIRED"]
+    },
+    "auth-unsigned-entry": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["AUTH_EXTRA_CONTRACT"]
+    },
+    "auth-entry-preimage": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["AUTH_EXTRA_CONTRACT"]
+    },
+    "sim-failure": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["SIMULATION_FAILED"]
+    },
+    "fee-bump": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "classic-payment": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["CLASSIC_OP_NOT_DECODED"]
+    },
+    "syn-silent-transfer": {
+      "captured": false,
+      "expectedRisk": "review",
+      "expectedWarnings": ["EFFECT_EVENT_MISSING"]
+    },
+    "syn-map-event": {
+      "captured": false,
+      "expectedRisk": "ok",
+      "expectedWarnings": []
+    },
+    "syn-duplicate-nonce": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["AUTH_DUPLICATE_NONCE"]
+    },
+    "syn-rpc-network": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["NETWORK_MISMATCH"]
+    },
+    "syn-no-contract": {
+      "captured": false,
+      "expectedRisk": "blocked",
+      "expectedWarnings": ["CONTRACT_NOT_FOUND"]
+    }
+  }
+}
