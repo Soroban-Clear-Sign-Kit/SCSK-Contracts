@@ -117,7 +117,7 @@ impl Token {
         }
         let to_bal = read_balance(&env, &to);
         write_balance(&env, &to, to_bal + amount);
-        env.events().publish((Symbol::new(&env, "mint"), admin, to), amount);
+        env.events().publish((Symbol::new(&env, "mint"), to), amount);
     }
 
     pub fn burn(env: Env, from: Address, amount: i128) {
@@ -144,7 +144,7 @@ impl Token {
             panic!("insufficient balance");
         }
         write_balance(&env, &from, from_bal - amount);
-        env.events().publish((Symbol::new(&env, "clawback"), admin, from), amount);
+        env.events().publish((Symbol::new(&env, "clawback"), from), amount);
     }
 
     pub fn set_admin(env: Env, new_admin: Address) {
