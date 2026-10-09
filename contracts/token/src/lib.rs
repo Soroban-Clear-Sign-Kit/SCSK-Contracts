@@ -63,3 +63,22 @@ impl Token {
         String::from_str(&env, "TST")
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use soroban_sdk::{Env, testutils::Address as _};
+
+    #[test]
+    fn test_transfer() {
+        let env = Env::default();
+        let contract_id = env.register(Token, ());
+        let client = TokenClient::new(&env, &contract_id);
+
+        let from = Address::generate(&env);
+        let to = Address::generate(&env);
+
+        env.mock_all_auths();
+        client.transfer(&from, &to, &100);
+    }
+}
