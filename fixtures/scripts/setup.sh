@@ -11,12 +11,16 @@ BOB_PUB=$(stellar keys address bob)
 echo "Alice: $ALICE_PUB"
 echo "Bob: $BOB_PUB"
 
-echo "Deploying test asset SAC..."
-TOKEN_ID=$(stellar contract asset deploy --asset "TST:$ALICE_PUB" --source-account alice --network testnet)
+echo "Building contracts..."
+cargo build --target wasm32v1-none --release
+
+echo "Deploying token contract..."
+TOKEN_ID=$(stellar contract deploy --wasm ../../target/wasm32v1-none/release/token.wasm --source-account alice --network testnet)
 echo "Token ID: $TOKEN_ID"
 
-echo "Building fixture contract..."
-cargo build --target wasm32v1-none --release
+echo "Deploying look-alike USDC token contract..."
+USDC_ID=$(stellar contract deploy --wasm ../../target/wasm32v1-none/release/token.wasm --source-account alice --network testnet)
+echo "USDC ID: $USDC_ID"
 
 echo "Deploying fixture contract..."
 CONTRACT_ID=$(stellar contract deploy --wasm ../../target/wasm32v1-none/release/fixture.wasm --source-account alice --network testnet)
@@ -28,6 +32,7 @@ cat <<EOF > ../testnet.json
   "alice": "$ALICE_PUB",
   "bob": "$BOB_PUB",
   "tokenId": "$TOKEN_ID",
+  "usdcId": "$USDC_ID",
   "contractId": "$CONTRACT_ID"
 }
 EOF
