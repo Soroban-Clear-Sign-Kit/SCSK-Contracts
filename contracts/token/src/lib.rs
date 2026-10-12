@@ -116,6 +116,12 @@ fn read_authorized(env: &Env, id: &Address) -> bool {
         .unwrap_or(true)
 }
 
+fn require_authorized(env: &Env, id: &Address) {
+    if !read_authorized(env, id) {
+        panic!("account is not authorized");
+    }
+}
+
 fn spend_balance(env: &Env, id: &Address, amount: i128) {
     let balance = read_balance(env, id);
     if balance < amount {
@@ -205,6 +211,8 @@ impl Token {
     pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
         from.require_auth();
         require_non_negative(amount);
+        require_authorized(&env, &from);
+        require_authorized(&env, &to);
         spend_balance(&env, &from, amount);
         receive_balance(&env, &to, amount);
 
@@ -214,6 +222,8 @@ impl Token {
     pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
         spender.require_auth();
         require_non_negative(amount);
+        require_authorized(&env, &from);
+        require_authorized(&env, &to);
         spend_allowance(&env, &from, &spender, amount);
 
         spend_balance(&env, &from, amount);
@@ -247,6 +257,7 @@ impl Token {
         let admin = read_admin(&env);
         admin.require_auth();
         require_non_negative(amount);
+        require_authorized(&env, &to);
         receive_balance(&env, &to, amount);
         Mint { to, amount }.publish(&env);
     }
@@ -667,5 +678,61 @@ mod test {
 
         client.set_authorized(&user, &true);
         assert!(client.authorized(&user));
+    }
+
+    #[test]
+    #[should_panic(expected = "account is not authorized")]
+    fn test_deauthorized_sender_cannot_transfer() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (a, b) = (Address::generate(&env), Address::generate(&env));
+        client.mint(&a, &100);
+        client.set_authorized(&a, &false);
+        client.transfer(&a, &b, &10);
+    }
+
+    #[test]
+    #[should_panic(expected = "account is not authorized")]
+    fn test_deauthorized_recipient_cannot_receive() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (a, b) = (Address::generate(&env), Address::generate(&env));
+        client.mint(&a, &100);
+        client.set_authorized(&b, &false);
+        client.transfer(&a, &b, &10);
+    }
+
+    #[test]
+    #[should_panic(expected = "account is not authorized")]
+    fn test_cannot_mint_to_deauthorized_account() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let user = Address::generate(&env);
+        client.set_authorized(&user, &false);
+        client.mint(&user, &1);
+    }
+
+    #[test]
+    #[should_panic(expected = "account is not authorized")]
+    fn test_transfer_from_respects_authorization() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (owner, spender) = (Address::generate(&env), Address::generate(&env));
+        client.mint(&owner, &100);
+        client.approve(&owner, &spender, &50, &100);
+        client.set_authorized(&owner, &false);
+        client.transfer_from(&spender, &owner, &spender, &10);
+    }
+
+    #[test]
+    fn test_reauthorized_account_can_transfer_again() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (a, b) = (Address::generate(&env), Address::generate(&env));
+        client.mint(&a, &100);
+        client.set_authorized(&a, &false);
+        client.set_authorized(&a, &true);
+        client.transfer(&a, &b, &10);
+        assert_eq!(client.balance(&b), 10);
     }
 }
