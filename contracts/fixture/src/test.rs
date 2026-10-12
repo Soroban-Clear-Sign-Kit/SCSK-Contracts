@@ -191,3 +191,29 @@ fn forward_many_authorizes_one_transfer_per_recipient() {
         )]
     );
 }
+
+#[test]
+fn forward_many_with_no_recipients_is_a_noop() {
+    let s = setup(1_000);
+    let tos: Vec<Address> = vec![&s.env];
+
+    s.client.forward_many(&s.from, &s.token.address, &tos, &100);
+
+    assert_eq!(s.token.balance(&s.from), 1_000);
+}
+
+#[test]
+fn forward_many_is_all_or_nothing() {
+    let s = setup(150);
+    let other = Address::generate(&s.env);
+    let tos = vec![&s.env, s.to.clone(), other.clone()];
+
+    let result = s
+        .client
+        .try_forward_many(&s.from, &s.token.address, &tos, &100);
+
+    assert!(result.is_err());
+    assert_eq!(s.token.balance(&s.from), 150);
+    assert_eq!(s.token.balance(&s.to), 0);
+    assert_eq!(s.token.balance(&other), 0);
+}
