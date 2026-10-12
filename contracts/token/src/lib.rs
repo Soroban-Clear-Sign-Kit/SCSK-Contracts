@@ -735,4 +735,29 @@ mod test {
         client.transfer(&a, &b, &10);
         assert_eq!(client.balance(&b), 10);
     }
+
+    #[test]
+    fn test_burn_from_spends_allowance_and_balance() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (owner, spender) = (Address::generate(&env), Address::generate(&env));
+        client.mint(&owner, &500);
+        client.approve(&owner, &spender, &200, &100);
+
+        client.burn_from(&spender, &owner, &150);
+
+        assert_eq!(client.balance(&owner), 350);
+        assert_eq!(client.allowance(&owner, &spender), 50);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient allowance")]
+    fn test_burn_from_above_allowance() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (owner, spender) = (Address::generate(&env), Address::generate(&env));
+        client.mint(&owner, &500);
+        client.approve(&owner, &spender, &10, &100);
+        client.burn_from(&spender, &owner, &11);
+    }
 }
