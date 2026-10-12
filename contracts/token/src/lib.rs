@@ -128,13 +128,22 @@ fn read_allowance(env: &Env, from: &Address, spender: &Address) -> AllowanceValu
         from: from.clone(),
         spender: spender.clone(),
     });
-    env.storage()
-        .persistent()
-        .get(&key)
-        .unwrap_or(AllowanceValue {
+    let allowance: AllowanceValue =
+        env.storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(AllowanceValue {
+                amount: 0,
+                expiration_ledger: 0,
+            });
+    // An allowance whose expiration ledger has passed is treated as zero.
+    if allowance.amount > 0 && allowance.expiration_ledger < env.ledger().sequence() {
+        return AllowanceValue {
             amount: 0,
-            expiration_ledger: 0,
-        })
+            expiration_ledger: allowance.expiration_ledger,
+        };
+    }
+    allowance
 }
 
 fn write_allowance(
@@ -545,5 +554,38 @@ mod test {
         let user = Address::generate(&env);
         client.mint(&user, &i128::MAX);
         client.mint(&user, &1);
+    }
+
+    #[test]
+    fn test_expired_allowance_reads_as_zero() {
+        use soroban_sdk::testutils::Ledger;
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let owner = Address::generate(&env);
+        let spender = Address::generate(&env);
+
+        client.approve(&owner, &spender, &100, &10);
+        assert_eq!(client.allowance(&owner, &spender), 100);
+
+        env.ledger().set_sequence_number(10);
+        assert_eq!(client.allowance(&owner, &spender), 100);
+
+        env.ledger().set_sequence_number(11);
+        assert_eq!(client.allowance(&owner, &spender), 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient allowance")]
+    fn test_transfer_from_with_expired_allowance() {
+        use soroban_sdk::testutils::Ledger;
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let owner = Address::generate(&env);
+        let spender = Address::generate(&env);
+        client.mint(&owner, &1000);
+        client.approve(&owner, &spender, &100, &10);
+
+        env.ledger().set_sequence_number(11);
+        client.transfer_from(&spender, &owner, &spender, &1);
     }
 }
