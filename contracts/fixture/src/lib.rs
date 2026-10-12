@@ -59,6 +59,19 @@ impl Forwarder {
     ) {
         do_transfer(&env, &from, &token, &to, &amount);
     }
+
+    /// Forwards the same `amount` from one address to every recipient in `tos`.
+    ///
+    /// Requires a single authorization from `from`. The authorization tree gets one
+    /// nested `transfer` sub-invocation per recipient, which makes this useful for
+    /// testing wide (rather than deep) authorization trees.
+    pub fn forward_many(env: Env, from: Address, token: Address, tos: Vec<Address>, amount: i128) {
+        from.require_auth();
+        let client = token::Client::new(&env, &token);
+        for to in tos.iter() {
+            client.transfer(&from, &to, &amount);
+        }
+    }
 }
 
 /// Helper function to perform the token transfer and enforce authorization.

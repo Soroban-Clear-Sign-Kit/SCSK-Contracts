@@ -140,3 +140,137 @@ fn forward_rejects_negative_amount() {
     assert!(result.is_err());
     assert_eq!(s.token.balance(&s.from), 100);
 }
+
+#[test]
+fn forward_many_pays_every_recipient() {
+    let s = setup(1_000);
+    let other = Address::generate(&s.env);
+    let tos = vec![&s.env, s.to.clone(), other.clone()];
+
+    s.client.forward_many(&s.from, &s.token.address, &tos, &100);
+
+    assert_eq!(s.token.balance(&s.from), 800);
+    assert_eq!(s.token.balance(&s.to), 100);
+    assert_eq!(s.token.balance(&other), 100);
+}
+
+#[test]
+fn forward_many_authorizes_one_transfer_per_recipient() {
+    let s = setup(1_000);
+    let other = Address::generate(&s.env);
+    let tos = vec![&s.env, s.to.clone(), other.clone()];
+
+    s.client.forward_many(&s.from, &s.token.address, &tos, &10);
+
+    let transfer = |recipient: &Address| AuthorizedInvocation {
+        function: AuthorizedFunction::Contract((
+            s.token.address.clone(),
+            symbol_short!("transfer"),
+            (s.from.clone(), recipient.clone(), 10_i128).into_val(&s.env),
+        )),
+        sub_invocations: std::vec![],
+    };
+    assert_eq!(
+        s.env.auths(),
+        std::vec![(
+            s.from.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    s.contract_id.clone(),
+                    Symbol::new(&s.env, "forward_many"),
+                    (
+                        s.from.clone(),
+                        s.token.address.clone(),
+                        tos.clone(),
+                        10_i128
+                    )
+                        .into_val(&s.env),
+                )),
+                sub_invocations: std::vec![transfer(&s.to), transfer(&other)],
+            }
+        )]
+    );
+}
+
+#[test]
+fn forward_many_with_no_recipients_is_a_noop() {
+    let s = setup(1_000);
+    let tos: Vec<Address> = vec![&s.env];
+
+    s.client.forward_many(&s.from, &s.token.address, &tos, &100);
+
+    assert_eq!(s.token.balance(&s.from), 1_000);
+}
+
+#[test]
+fn forward_many_is_all_or_nothing() {
+    let s = setup(150);
+    let other = Address::generate(&s.env);
+    let tos = vec![&s.env, s.to.clone(), other.clone()];
+
+    let result = s
+        .client
+        .try_forward_many(&s.from, &s.token.address, &tos, &100);
+
+    assert!(result.is_err());
+    assert_eq!(s.token.balance(&s.from), 150);
+    assert_eq!(s.token.balance(&s.to), 0);
+    assert_eq!(s.token.balance(&other), 0);
+}
+
+#[test]
+fn forward_zero_amount_leaves_balances_unchanged() {
+    let s = setup(100);
+
+    s.client.forward(&s.from, &s.token.address, &s.to, &0);
+
+    assert_eq!(s.token.balance(&s.from), 100);
+    assert_eq!(s.token.balance(&s.to), 0);
+}
+
+#[test]
+fn forward_to_self_keeps_balance() {
+    let s = setup(100);
+
+    s.client.forward(&s.from, &s.token.address, &s.from, &40);
+
+    assert_eq!(s.token.balance(&s.from), 100);
+}
+
+#[test]
+fn forward_with_meta_rejects_amount_above_balance() {
+    let s = setup(10);
+    let meta = Meta {
+        memo: String::from_str(&s.env, "too much"),
+        tags: vec![&s.env],
+    };
+
+    let result =
+        s.client
+            .try_forward_with_meta(&s.from, &s.token.address, &s.to, &11, &meta, &Mode::Fast);
+
+    assert!(result.is_err());
+    assert_eq!(s.token.balance(&s.from), 10);
+}
+
+#[test]
+fn forward_with_meta_requires_sender_auth() {
+    let s = setup(100);
+    let meta = Meta {
+        memo: String::from_str(&s.env, "memo"),
+        tags: vec![&s.env, symbol_short!("t")],
+    };
+
+    s.client.forward_with_meta(
+        &s.from,
+        &s.token.address,
+        &s.to,
+        &5,
+        &meta,
+        &Mode::Scheduled(9),
+    );
+
+    let auths = s.env.auths();
+    assert_eq!(auths.len(), 1);
+    assert_eq!(auths[0].0, s.from);
+}
