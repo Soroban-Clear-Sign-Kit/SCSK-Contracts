@@ -809,4 +809,28 @@ mod test {
         );
         client.clawback(&user, &1);
     }
+
+    #[test]
+    fn test_set_admin_hands_over_minting_rights() {
+        let env = Env::default();
+        let (client, admin) = new_token(&env);
+        let new_admin = Address::generate(&env);
+
+        client.set_admin(&new_admin);
+        assert_eq!(
+            env.events().all(),
+            soroban_sdk::vec![
+                &env,
+                (
+                    client.address.clone(),
+                    (Symbol::new(&env, "set_admin"), admin.clone()).into_val(&env),
+                    new_admin.clone().into_val(&env)
+                )
+            ]
+        );
+
+        client.mint(&new_admin, &5);
+        assert_eq!(env.auths().last().unwrap().0, new_admin);
+        assert_eq!(client.balance(&new_admin), 5);
+    }
 }
