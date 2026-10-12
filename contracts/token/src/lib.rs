@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, contractevent, Address, Env, String};
+use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, String};
 
 #[contractevent(data_format = "single-value")]
 struct Transfer {
@@ -56,7 +56,6 @@ struct SetAuthorized {
     authorize: bool,
 }
 
-
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
@@ -85,21 +84,50 @@ pub struct AllowanceValue {
 }
 
 fn read_balance(env: &Env, id: &Address) -> i128 {
-    env.storage().persistent().get(&DataKey::Balance(id.clone())).unwrap_or(0)
+    env.storage()
+        .persistent()
+        .get(&DataKey::Balance(id.clone()))
+        .unwrap_or(0)
 }
 
 fn write_balance(env: &Env, id: &Address, amount: i128) {
-    env.storage().persistent().set(&DataKey::Balance(id.clone()), &amount);
+    env.storage()
+        .persistent()
+        .set(&DataKey::Balance(id.clone()), &amount);
 }
 
 fn read_allowance(env: &Env, from: &Address, spender: &Address) -> AllowanceValue {
-    let key = DataKey::Allowance(AllowanceDataKey { from: from.clone(), spender: spender.clone() });
-    env.storage().persistent().get(&key).unwrap_or(AllowanceValue { amount: 0, expiration_ledger: 0 })
+    let key = DataKey::Allowance(AllowanceDataKey {
+        from: from.clone(),
+        spender: spender.clone(),
+    });
+    env.storage()
+        .persistent()
+        .get(&key)
+        .unwrap_or(AllowanceValue {
+            amount: 0,
+            expiration_ledger: 0,
+        })
 }
 
-fn write_allowance(env: &Env, from: &Address, spender: &Address, amount: i128, expiration_ledger: u32) {
-    let key = DataKey::Allowance(AllowanceDataKey { from: from.clone(), spender: spender.clone() });
-    env.storage().persistent().set(&key, &AllowanceValue { amount, expiration_ledger });
+fn write_allowance(
+    env: &Env,
+    from: &Address,
+    spender: &Address,
+    amount: i128,
+    expiration_ledger: u32,
+) {
+    let key = DataKey::Allowance(AllowanceDataKey {
+        from: from.clone(),
+        spender: spender.clone(),
+    });
+    env.storage().persistent().set(
+        &key,
+        &AllowanceValue {
+            amount,
+            expiration_ledger,
+        },
+    );
 }
 
 #[contract]
@@ -129,7 +157,7 @@ impl Token {
         write_balance(&env, &from, from_bal - amount);
         let to_bal = read_balance(&env, &to);
         write_balance(&env, &to, to_bal + amount);
-        
+
         Transfer { from, to, amount }.publish(&env);
     }
 
@@ -143,8 +171,14 @@ impl Token {
             panic!("insufficient allowance");
         }
         allowance.amount -= amount;
-        write_allowance(&env, &from, &spender, allowance.amount, allowance.expiration_ledger);
-        
+        write_allowance(
+            &env,
+            &from,
+            &spender,
+            allowance.amount,
+            allowance.expiration_ledger,
+        );
+
         let from_bal = read_balance(&env, &from);
         if from_bal < amount {
             panic!("insufficient balance");
@@ -152,17 +186,28 @@ impl Token {
         write_balance(&env, &from, from_bal - amount);
         let to_bal = read_balance(&env, &to);
         write_balance(&env, &to, to_bal + amount);
-        
+
         Transfer { from, to, amount }.publish(&env);
     }
 
-    pub fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration_ledger: u32) {
+    pub fn approve(
+        env: Env,
+        from: Address,
+        spender: Address,
+        amount: i128,
+        expiration_ledger: u32,
+    ) {
         from.require_auth();
         if amount < 0 {
             panic!("negative amount");
         }
         write_allowance(&env, &from, &spender, amount, expiration_ledger);
-        Approve { from, spender, data: (amount, expiration_ledger) }.publish(&env);
+        Approve {
+            from,
+            spender,
+            data: (amount, expiration_ledger),
+        }
+        .publish(&env);
     }
 
     pub fn mint(env: Env, to: Address, amount: i128) {
@@ -199,8 +244,14 @@ impl Token {
             panic!("insufficient allowance");
         }
         allowance.amount -= amount;
-        write_allowance(&env, &from, &spender, allowance.amount, allowance.expiration_ledger);
-        
+        write_allowance(
+            &env,
+            &from,
+            &spender,
+            allowance.amount,
+            allowance.expiration_ledger,
+        );
+
         let from_bal = read_balance(&env, &from);
         if from_bal < amount {
             panic!("insufficient balance");
@@ -233,8 +284,15 @@ impl Token {
     pub fn set_authorized(env: Env, id: Address, authorize: bool) {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
         admin.require_auth();
-        env.storage().persistent().set(&DataKey::State(id.clone()), &authorize);
-        SetAuthorized { admin, id, authorize }.publish(&env);
+        env.storage()
+            .persistent()
+            .set(&DataKey::State(id.clone()), &authorize);
+        SetAuthorized {
+            admin,
+            id,
+            authorize,
+        }
+        .publish(&env);
     }
 
     pub fn balance(env: Env, id: Address) -> i128 {
@@ -246,15 +304,24 @@ impl Token {
     }
 
     pub fn decimals(env: Env) -> u32 {
-        env.storage().instance().get(&DataKey::Decimals).unwrap_or(7)
+        env.storage()
+            .instance()
+            .get(&DataKey::Decimals)
+            .unwrap_or(7)
     }
 
     pub fn name(env: Env) -> String {
-        env.storage().instance().get(&DataKey::Name).unwrap_or_else(|| String::from_str(&env, "Test Token"))
+        env.storage()
+            .instance()
+            .get(&DataKey::Name)
+            .unwrap_or_else(|| String::from_str(&env, "Test Token"))
     }
 
     pub fn symbol(env: Env) -> String {
-        env.storage().instance().get(&DataKey::Symbol).unwrap_or_else(|| String::from_str(&env, "TST"))
+        env.storage()
+            .instance()
+            .get(&DataKey::Symbol)
+            .unwrap_or_else(|| String::from_str(&env, "TST"))
     }
 }
 
@@ -262,7 +329,10 @@ impl Token {
 mod test {
     extern crate std;
     use super::*;
-    use soroban_sdk::{Env, testutils::{Address as _, Events}, IntoVal, Symbol};
+    use soroban_sdk::{
+        testutils::{Address as _, Events},
+        Env, IntoVal, Symbol,
+    };
 
     #[test]
     fn test_token_flow() {
@@ -270,16 +340,21 @@ mod test {
         let admin = Address::generate(&env);
         let user1 = Address::generate(&env);
         let user2 = Address::generate(&env);
-        
+
         let contract_id = env.register(Token, ());
         let client = TokenClient::new(&env, &contract_id);
-        
-        client.initialize(&admin, &7, &String::from_str(&env, "Token"), &String::from_str(&env, "TKN"));
+
+        client.initialize(
+            &admin,
+            &7,
+            &String::from_str(&env, "Token"),
+            &String::from_str(&env, "TKN"),
+        );
 
         // Mint
         env.mock_all_auths();
         client.mint(&user1, &1000);
-        
+
         let all_events = env.events().all();
         assert_eq!(
             all_events,
@@ -292,12 +367,12 @@ mod test {
                 )
             ]
         );
-        
+
         assert_eq!(client.balance(&user1), 1000);
-        
+
         // Transfer
         client.transfer(&user1, &user2, &200);
-        
+
         assert_eq!(
             env.events().all(),
             soroban_sdk::vec![
@@ -309,7 +384,7 @@ mod test {
                 )
             ]
         );
-        
+
         assert_eq!(client.balance(&user1), 800);
         assert_eq!(client.balance(&user2), 200);
 
@@ -327,7 +402,7 @@ mod test {
             ]
         );
         assert_eq!(client.allowance(&user1, &user2), 500);
-        
+
         // Transfer from
         client.transfer_from(&user2, &user1, &user2, &300);
         assert_eq!(client.balance(&user1), 500);
@@ -369,7 +444,7 @@ mod test {
         // Clear events from approve before checking burn_from
         env.events().all();
         client.burn_from(&user1, &user2, &50);
-        
+
         assert_eq!(
             env.events().all(),
             soroban_sdk::vec![
@@ -383,7 +458,7 @@ mod test {
         );
         assert_eq!(client.balance(&user2), 350);
     }
-    
+
     #[test]
     #[should_panic(expected = "insufficient balance")]
     fn test_transfer_above_balance() {
@@ -393,7 +468,12 @@ mod test {
         let user2 = Address::generate(&env);
         let contract_id = env.register(Token, ());
         let client = TokenClient::new(&env, &contract_id);
-        client.initialize(&admin, &7, &String::from_str(&env, "Token"), &String::from_str(&env, "TKN"));
+        client.initialize(
+            &admin,
+            &7,
+            &String::from_str(&env, "Token"),
+            &String::from_str(&env, "TKN"),
+        );
         env.mock_all_auths();
         client.mint(&user1, &100);
         client.transfer(&user1, &user2, &101);
@@ -407,8 +487,13 @@ mod test {
         let user1 = Address::generate(&env);
         let contract_id = env.register(Token, ());
         let client = TokenClient::new(&env, &contract_id);
-        client.initialize(&admin, &7, &String::from_str(&env, "Token"), &String::from_str(&env, "TKN"));
-        
+        client.initialize(
+            &admin,
+            &7,
+            &String::from_str(&env, "Token"),
+            &String::from_str(&env, "TKN"),
+        );
+
         // Not mocking auths, so this will panic when it requires admin auth
         client.mint(&user1, &100);
     }
@@ -420,8 +505,18 @@ mod test {
         let admin = Address::generate(&env);
         let contract_id = env.register(Token, ());
         let client = TokenClient::new(&env, &contract_id);
-        client.initialize(&admin, &7, &String::from_str(&env, "Token"), &String::from_str(&env, "TKN"));
-        client.initialize(&admin, &7, &String::from_str(&env, "Token"), &String::from_str(&env, "TKN"));
+        client.initialize(
+            &admin,
+            &7,
+            &String::from_str(&env, "Token"),
+            &String::from_str(&env, "TKN"),
+        );
+        client.initialize(
+            &admin,
+            &7,
+            &String::from_str(&env, "Token"),
+            &String::from_str(&env, "TKN"),
+        );
     }
 
     #[test]
@@ -433,11 +528,16 @@ mod test {
         let user2 = Address::generate(&env);
         let contract_id = env.register(Token, ());
         let client = TokenClient::new(&env, &contract_id);
-        client.initialize(&admin, &7, &String::from_str(&env, "Token"), &String::from_str(&env, "TKN"));
+        client.initialize(
+            &admin,
+            &7,
+            &String::from_str(&env, "Token"),
+            &String::from_str(&env, "TKN"),
+        );
         env.mock_all_auths();
         client.mint(&user1, &1000);
         client.approve(&user1, &user2, &100, &100);
-        
+
         client.transfer_from(&user2, &user1, &user2, &101);
     }
 }
