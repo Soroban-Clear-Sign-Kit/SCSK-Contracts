@@ -119,7 +119,8 @@ fn spend_balance(env: &Env, id: &Address, amount: i128) {
 
 fn receive_balance(env: &Env, id: &Address, amount: i128) {
     let balance = read_balance(env, id);
-    write_balance(env, id, balance + amount);
+    let new_balance = balance.checked_add(amount).expect("balance overflow");
+    write_balance(env, id, new_balance);
 }
 
 fn read_allowance(env: &Env, from: &Address, spender: &Address) -> AllowanceValue {
@@ -520,5 +521,29 @@ mod test {
         client.approve(&user1, &user2, &100, &100);
 
         client.transfer_from(&user2, &user1, &user2, &101);
+    }
+
+    fn new_token(env: &Env) -> (TokenClient<'_>, Address) {
+        let admin = Address::generate(env);
+        let contract_id = env.register(Token, ());
+        let client = TokenClient::new(env, &contract_id);
+        client.initialize(
+            &admin,
+            &7,
+            &String::from_str(env, "Token"),
+            &String::from_str(env, "TKN"),
+        );
+        env.mock_all_auths();
+        (client, admin)
+    }
+
+    #[test]
+    #[should_panic(expected = "balance overflow")]
+    fn test_mint_overflow_is_rejected() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let user = Address::generate(&env);
+        client.mint(&user, &i128::MAX);
+        client.mint(&user, &1);
     }
 }
