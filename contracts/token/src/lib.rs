@@ -931,4 +931,25 @@ mod test {
         let client = TokenClient::new(&env, &id);
         client.mint(&Address::generate(&env), &1);
     }
+
+    #[test]
+    #[should_panic(expected = "insufficient balance")]
+    fn test_burn_above_balance() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let a = Address::generate(&env);
+        client.mint(&a, &5);
+        client.burn(&a, &6);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient balance")]
+    fn test_transfer_from_above_balance_with_enough_allowance() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (owner, spender) = (Address::generate(&env), Address::generate(&env));
+        client.mint(&owner, &5);
+        client.approve(&owner, &spender, &100, &50);
+        client.transfer_from(&spender, &owner, &spender, &6);
+    }
 }
