@@ -187,6 +187,15 @@ fn write_allowance(
             expiration_ledger,
         },
     );
+    // Keep the entry alive until the allowance expires, never past the network maximum.
+    if amount > 0 {
+        let live_for = expiration_ledger
+            .saturating_sub(env.ledger().sequence())
+            .min(env.storage().max_ttl());
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, live_for, live_for);
+    }
 }
 
 fn spend_allowance(env: &Env, from: &Address, spender: &Address, amount: i128) {
@@ -1009,5 +1018,25 @@ mod test {
                 .get_ttl(&DataKey::Balance(user.clone()))
         });
         assert!(ttl >= BALANCE_LIFETIME_THRESHOLD, "ttl was {ttl}");
+    }
+
+    #[test]
+    fn test_allowance_ttl_covers_its_expiration() {
+        use soroban_sdk::testutils::Ledger;
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (owner, spender) = (Address::generate(&env), Address::generate(&env));
+        env.ledger().set_sequence_number(100);
+        client.approve(&owner, &spender, &10, &10_000);
+
+        let ttl = env.as_contract(&client.address, || {
+            env.storage()
+                .persistent()
+                .get_ttl(&DataKey::Allowance(AllowanceDataKey {
+                    from: owner.clone(),
+                    spender: spender.clone(),
+                }))
+        });
+        assert!(ttl >= 10_000 - 100, "ttl was {ttl}");
     }
 }
