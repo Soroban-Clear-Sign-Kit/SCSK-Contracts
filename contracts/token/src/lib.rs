@@ -149,6 +149,20 @@ fn write_allowance(
     );
 }
 
+fn spend_allowance(env: &Env, from: &Address, spender: &Address, amount: i128) {
+    let allowance = read_allowance(env, from, spender);
+    if allowance.amount < amount {
+        panic!("insufficient allowance");
+    }
+    write_allowance(
+        env,
+        from,
+        spender,
+        allowance.amount - amount,
+        allowance.expiration_ledger,
+    );
+}
+
 #[contract]
 pub struct Token;
 
@@ -176,18 +190,7 @@ impl Token {
     pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
         spender.require_auth();
         require_non_negative(amount);
-        let mut allowance = read_allowance(&env, &from, &spender);
-        if allowance.amount < amount {
-            panic!("insufficient allowance");
-        }
-        allowance.amount -= amount;
-        write_allowance(
-            &env,
-            &from,
-            &spender,
-            allowance.amount,
-            allowance.expiration_ledger,
-        );
+        spend_allowance(&env, &from, &spender, amount);
 
         spend_balance(&env, &from, amount);
         receive_balance(&env, &to, amount);
@@ -231,18 +234,7 @@ impl Token {
     pub fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
         spender.require_auth();
         require_non_negative(amount);
-        let mut allowance = read_allowance(&env, &from, &spender);
-        if allowance.amount < amount {
-            panic!("insufficient allowance");
-        }
-        allowance.amount -= amount;
-        write_allowance(
-            &env,
-            &from,
-            &spender,
-            allowance.amount,
-            allowance.expiration_ledger,
-        );
+        spend_allowance(&env, &from, &spender, amount);
 
         spend_balance(&env, &from, amount);
         Burn { from, amount }.publish(&env);
