@@ -236,3 +236,41 @@ fn forward_to_self_keeps_balance() {
 
     assert_eq!(s.token.balance(&s.from), 100);
 }
+
+#[test]
+fn forward_with_meta_rejects_amount_above_balance() {
+    let s = setup(10);
+    let meta = Meta {
+        memo: String::from_str(&s.env, "too much"),
+        tags: vec![&s.env],
+    };
+
+    let result =
+        s.client
+            .try_forward_with_meta(&s.from, &s.token.address, &s.to, &11, &meta, &Mode::Fast);
+
+    assert!(result.is_err());
+    assert_eq!(s.token.balance(&s.from), 10);
+}
+
+#[test]
+fn forward_with_meta_requires_sender_auth() {
+    let s = setup(100);
+    let meta = Meta {
+        memo: String::from_str(&s.env, "memo"),
+        tags: vec![&s.env, symbol_short!("t")],
+    };
+
+    s.client.forward_with_meta(
+        &s.from,
+        &s.token.address,
+        &s.to,
+        &5,
+        &meta,
+        &Mode::Scheduled(9),
+    );
+
+    let auths = s.env.auths();
+    assert_eq!(auths.len(), 1);
+    assert_eq!(auths[0].0, s.from);
+}
