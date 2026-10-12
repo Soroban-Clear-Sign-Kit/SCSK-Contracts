@@ -313,6 +313,11 @@ impl Token {
         .publish(&env);
     }
 
+    /// Returns the current administrator.
+    pub fn admin(env: Env) -> Address {
+        read_admin(&env)
+    }
+
     /// Returns whether `id` may send or receive tokens. Accounts are authorized by default.
     pub fn authorized(env: Env, id: Address) -> bool {
         read_authorized(&env, &id)
@@ -971,5 +976,15 @@ mod test {
             &String::from_str(&env, "Token"),
             &String::from_str(&env, "TKN"),
         );
+    }
+
+    #[test]
+    fn test_admin_getter_follows_set_admin() {
+        let env = Env::default();
+        let (client, admin) = new_token(&env);
+        assert_eq!(client.admin(), admin);
+        let next = Address::generate(&env);
+        client.set_admin(&next);
+        assert_eq!(client.admin(), next);
     }
 }
