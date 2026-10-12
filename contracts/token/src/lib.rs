@@ -224,6 +224,9 @@ impl Token {
     ) {
         from.require_auth();
         require_non_negative(amount);
+        if amount > 0 && expiration_ledger < env.ledger().sequence() {
+            panic!("expiration ledger is in the past");
+        }
         write_allowance(&env, &from, &spender, amount, expiration_ledger);
         Approve {
             from,
@@ -587,5 +590,32 @@ mod test {
 
         env.ledger().set_sequence_number(11);
         client.transfer_from(&spender, &owner, &spender, &1);
+    }
+
+    #[test]
+    #[should_panic(expected = "expiration ledger is in the past")]
+    fn test_approve_with_past_expiration() {
+        use soroban_sdk::testutils::Ledger;
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let owner = Address::generate(&env);
+        let spender = Address::generate(&env);
+
+        env.ledger().set_sequence_number(50);
+        client.approve(&owner, &spender, &100, &49);
+    }
+
+    #[test]
+    fn test_approve_zero_clears_allowance_even_with_past_expiration() {
+        use soroban_sdk::testutils::Ledger;
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let owner = Address::generate(&env);
+        let spender = Address::generate(&env);
+
+        client.approve(&owner, &spender, &100, &100);
+        env.ledger().set_sequence_number(50);
+        client.approve(&owner, &spender, &0, &0);
+        assert_eq!(client.allowance(&owner, &spender), 0);
     }
 }
