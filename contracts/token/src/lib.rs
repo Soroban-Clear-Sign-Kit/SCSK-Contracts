@@ -921,4 +921,14 @@ mod test {
         assert_eq!(client.allowance(&owner, &s1), 100);
         assert_eq!(client.allowance(&owner, &s2), 0);
     }
+
+    #[test]
+    #[should_panic(expected = "not initialized")]
+    fn test_mint_before_initialize_panics_clearly() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let id = env.register(Token, ());
+        let client = TokenClient::new(&env, &id);
+        client.mint(&Address::generate(&env), &1);
+    }
 }
