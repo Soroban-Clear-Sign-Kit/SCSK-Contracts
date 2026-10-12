@@ -879,4 +879,25 @@ mod test {
         assert!(client.try_burn_from(&b, &a, &-1).is_err());
         assert_eq!(client.balance(&a), 100);
     }
+
+    #[test]
+    fn test_zero_amount_transfer_is_a_noop() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (a, b) = (Address::generate(&env), Address::generate(&env));
+        client.mint(&a, &10);
+        client.transfer(&a, &b, &0);
+        assert_eq!(client.balance(&a), 10);
+        assert_eq!(client.balance(&b), 0);
+    }
+
+    #[test]
+    fn test_self_transfer_keeps_balance() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let a = Address::generate(&env);
+        client.mint(&a, &10);
+        client.transfer(&a, &a, &10);
+        assert_eq!(client.balance(&a), 10);
+    }
 }
