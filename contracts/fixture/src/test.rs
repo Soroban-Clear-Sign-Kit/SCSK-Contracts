@@ -153,3 +153,41 @@ fn forward_many_pays_every_recipient() {
     assert_eq!(s.token.balance(&s.to), 100);
     assert_eq!(s.token.balance(&other), 100);
 }
+
+#[test]
+fn forward_many_authorizes_one_transfer_per_recipient() {
+    let s = setup(1_000);
+    let other = Address::generate(&s.env);
+    let tos = vec![&s.env, s.to.clone(), other.clone()];
+
+    s.client.forward_many(&s.from, &s.token.address, &tos, &10);
+
+    let transfer = |recipient: &Address| AuthorizedInvocation {
+        function: AuthorizedFunction::Contract((
+            s.token.address.clone(),
+            symbol_short!("transfer"),
+            (s.from.clone(), recipient.clone(), 10_i128).into_val(&s.env),
+        )),
+        sub_invocations: std::vec![],
+    };
+    assert_eq!(
+        s.env.auths(),
+        std::vec![(
+            s.from.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    s.contract_id.clone(),
+                    Symbol::new(&s.env, "forward_many"),
+                    (
+                        s.from.clone(),
+                        s.token.address.clone(),
+                        tos.clone(),
+                        10_i128
+                    )
+                        .into_val(&s.env),
+                )),
+                sub_invocations: std::vec![transfer(&s.to), transfer(&other)],
+            }
+        )]
+    );
+}
