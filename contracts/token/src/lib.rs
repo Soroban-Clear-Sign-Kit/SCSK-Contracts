@@ -83,6 +83,12 @@ pub struct AllowanceValue {
     pub expiration_ledger: u32,
 }
 
+fn require_non_negative(amount: i128) {
+    if amount < 0 {
+        panic!("negative amount");
+    }
+}
+
 fn read_balance(env: &Env, id: &Address) -> i128 {
     env.storage()
         .persistent()
@@ -147,9 +153,7 @@ impl Token {
 
     pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
         from.require_auth();
-        if amount < 0 {
-            panic!("negative amount");
-        }
+        require_non_negative(amount);
         let from_bal = read_balance(&env, &from);
         if from_bal < amount {
             panic!("insufficient balance");
@@ -163,9 +167,7 @@ impl Token {
 
     pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
         spender.require_auth();
-        if amount < 0 {
-            panic!("negative amount");
-        }
+        require_non_negative(amount);
         let mut allowance = read_allowance(&env, &from, &spender);
         if allowance.amount < amount {
             panic!("insufficient allowance");
@@ -198,9 +200,7 @@ impl Token {
         expiration_ledger: u32,
     ) {
         from.require_auth();
-        if amount < 0 {
-            panic!("negative amount");
-        }
+        require_non_negative(amount);
         write_allowance(&env, &from, &spender, amount, expiration_ledger);
         Approve {
             from,
@@ -213,9 +213,7 @@ impl Token {
     pub fn mint(env: Env, to: Address, amount: i128) {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
         admin.require_auth();
-        if amount < 0 {
-            panic!("negative amount");
-        }
+        require_non_negative(amount);
         let to_bal = read_balance(&env, &to);
         write_balance(&env, &to, to_bal + amount);
         Mint { to, amount }.publish(&env);
@@ -223,9 +221,7 @@ impl Token {
 
     pub fn burn(env: Env, from: Address, amount: i128) {
         from.require_auth();
-        if amount < 0 {
-            panic!("negative amount");
-        }
+        require_non_negative(amount);
         let from_bal = read_balance(&env, &from);
         if from_bal < amount {
             panic!("insufficient balance");
@@ -236,9 +232,7 @@ impl Token {
 
     pub fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
         spender.require_auth();
-        if amount < 0 {
-            panic!("negative amount");
-        }
+        require_non_negative(amount);
         let mut allowance = read_allowance(&env, &from, &spender);
         if allowance.amount < amount {
             panic!("insufficient allowance");
@@ -263,9 +257,7 @@ impl Token {
     pub fn clawback(env: Env, from: Address, amount: i128) {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
         admin.require_auth();
-        if amount < 0 {
-            panic!("negative amount");
-        }
+        require_non_negative(amount);
         let from_bal = read_balance(&env, &from);
         if from_bal < amount {
             panic!("insufficient balance");
