@@ -59,6 +59,11 @@ struct SetAuthorized {
 /// Upper bound on `decimals`, matching the Stellar Asset Contract.
 const MAX_DECIMALS: u32 = 18;
 
+const DAY_IN_LEDGERS: u32 = 17_280;
+/// Persistent balances are renewed to ~30 days whenever they are written.
+const BALANCE_BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
+const BALANCE_LIFETIME_THRESHOLD: u32 = BALANCE_BUMP_AMOUNT - DAY_IN_LEDGERS;
+
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
@@ -107,9 +112,11 @@ fn read_balance(env: &Env, id: &Address) -> i128 {
 }
 
 fn write_balance(env: &Env, id: &Address, amount: i128) {
+    let key = DataKey::Balance(id.clone());
+    env.storage().persistent().set(&key, &amount);
     env.storage()
         .persistent()
-        .set(&DataKey::Balance(id.clone()), &amount);
+        .extend_ttl(&key, BALANCE_LIFETIME_THRESHOLD, BALANCE_BUMP_AMOUNT);
 }
 
 fn read_authorized(env: &Env, id: &Address) -> bool {
@@ -357,6 +364,7 @@ impl Token {
 mod test {
     extern crate std;
     use super::*;
+    use soroban_sdk::testutils::storage::Persistent as _;
     use soroban_sdk::{
         testutils::{Address as _, Events},
         Env, IntoVal, Symbol,
@@ -986,5 +994,20 @@ mod test {
         let next = Address::generate(&env);
         client.set_admin(&next);
         assert_eq!(client.admin(), next);
+    }
+
+    #[test]
+    fn test_balance_ttl_is_extended_on_write() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let user = Address::generate(&env);
+        client.mint(&user, &1);
+
+        let ttl = env.as_contract(&client.address, || {
+            env.storage()
+                .persistent()
+                .get_ttl(&DataKey::Balance(user.clone()))
+        });
+        assert!(ttl >= BALANCE_LIFETIME_THRESHOLD, "ttl was {ttl}");
     }
 }
