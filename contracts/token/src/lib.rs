@@ -862,4 +862,21 @@ mod test {
         assert_eq!(client.name(), String::from_str(&env, "Test Token"));
         assert_eq!(client.symbol(), String::from_str(&env, "TST"));
     }
+
+    #[test]
+    fn test_negative_amounts_are_rejected_everywhere() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (a, b) = (Address::generate(&env), Address::generate(&env));
+        client.mint(&a, &100);
+
+        assert!(client.try_transfer(&a, &b, &-1).is_err());
+        assert!(client.try_approve(&a, &b, &-1, &100).is_err());
+        assert!(client.try_mint(&a, &-1).is_err());
+        assert!(client.try_burn(&a, &-1).is_err());
+        assert!(client.try_clawback(&a, &-1).is_err());
+        assert!(client.try_transfer_from(&b, &a, &b, &-1).is_err());
+        assert!(client.try_burn_from(&b, &a, &-1).is_err());
+        assert_eq!(client.balance(&a), 100);
+    }
 }
