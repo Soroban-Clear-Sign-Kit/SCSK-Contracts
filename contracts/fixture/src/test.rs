@@ -140,3 +140,16 @@ fn forward_rejects_negative_amount() {
     assert!(result.is_err());
     assert_eq!(s.token.balance(&s.from), 100);
 }
+
+#[test]
+fn forward_many_pays_every_recipient() {
+    let s = setup(1_000);
+    let other = Address::generate(&s.env);
+    let tos = vec![&s.env, s.to.clone(), other.clone()];
+
+    s.client.forward_many(&s.from, &s.token.address, &tos, &100);
+
+    assert_eq!(s.token.balance(&s.from), 800);
+    assert_eq!(s.token.balance(&s.to), 100);
+    assert_eq!(s.token.balance(&other), 100);
+}
