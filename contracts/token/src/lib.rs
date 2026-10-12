@@ -760,4 +760,53 @@ mod test {
         client.approve(&owner, &spender, &10, &100);
         client.burn_from(&spender, &owner, &11);
     }
+
+    #[test]
+    fn test_clawback_reduces_balance_and_emits_event() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let user = Address::generate(&env);
+        client.mint(&user, &100);
+
+        client.clawback(&user, &40);
+        assert_eq!(
+            env.events().all(),
+            soroban_sdk::vec![
+                &env,
+                (
+                    client.address.clone(),
+                    (Symbol::new(&env, "clawback"), user.clone()).into_val(&env),
+                    40_i128.into_val(&env)
+                )
+            ]
+        );
+        assert_eq!(client.balance(&user), 60);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient balance")]
+    fn test_clawback_above_balance() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let user = Address::generate(&env);
+        client.mint(&user, &10);
+        client.clawback(&user, &11);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_clawback_requires_admin_auth() {
+        let env = Env::default();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let id = env.register(Token, ());
+        let client = TokenClient::new(&env, &id);
+        client.initialize(
+            &admin,
+            &7,
+            &String::from_str(&env, "Token"),
+            &String::from_str(&env, "TKN"),
+        );
+        client.clawback(&user, &1);
+    }
 }
