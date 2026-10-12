@@ -102,6 +102,19 @@ fn write_balance(env: &Env, id: &Address, amount: i128) {
         .set(&DataKey::Balance(id.clone()), &amount);
 }
 
+fn spend_balance(env: &Env, id: &Address, amount: i128) {
+    let balance = read_balance(env, id);
+    if balance < amount {
+        panic!("insufficient balance");
+    }
+    write_balance(env, id, balance - amount);
+}
+
+fn receive_balance(env: &Env, id: &Address, amount: i128) {
+    let balance = read_balance(env, id);
+    write_balance(env, id, balance + amount);
+}
+
 fn read_allowance(env: &Env, from: &Address, spender: &Address) -> AllowanceValue {
     let key = DataKey::Allowance(AllowanceDataKey {
         from: from.clone(),
@@ -154,13 +167,8 @@ impl Token {
     pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
         from.require_auth();
         require_non_negative(amount);
-        let from_bal = read_balance(&env, &from);
-        if from_bal < amount {
-            panic!("insufficient balance");
-        }
-        write_balance(&env, &from, from_bal - amount);
-        let to_bal = read_balance(&env, &to);
-        write_balance(&env, &to, to_bal + amount);
+        spend_balance(&env, &from, amount);
+        receive_balance(&env, &to, amount);
 
         Transfer { from, to, amount }.publish(&env);
     }
@@ -181,13 +189,8 @@ impl Token {
             allowance.expiration_ledger,
         );
 
-        let from_bal = read_balance(&env, &from);
-        if from_bal < amount {
-            panic!("insufficient balance");
-        }
-        write_balance(&env, &from, from_bal - amount);
-        let to_bal = read_balance(&env, &to);
-        write_balance(&env, &to, to_bal + amount);
+        spend_balance(&env, &from, amount);
+        receive_balance(&env, &to, amount);
 
         Transfer { from, to, amount }.publish(&env);
     }
@@ -214,19 +217,14 @@ impl Token {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
         admin.require_auth();
         require_non_negative(amount);
-        let to_bal = read_balance(&env, &to);
-        write_balance(&env, &to, to_bal + amount);
+        receive_balance(&env, &to, amount);
         Mint { to, amount }.publish(&env);
     }
 
     pub fn burn(env: Env, from: Address, amount: i128) {
         from.require_auth();
         require_non_negative(amount);
-        let from_bal = read_balance(&env, &from);
-        if from_bal < amount {
-            panic!("insufficient balance");
-        }
-        write_balance(&env, &from, from_bal - amount);
+        spend_balance(&env, &from, amount);
         Burn { from, amount }.publish(&env);
     }
 
@@ -246,11 +244,7 @@ impl Token {
             allowance.expiration_ledger,
         );
 
-        let from_bal = read_balance(&env, &from);
-        if from_bal < amount {
-            panic!("insufficient balance");
-        }
-        write_balance(&env, &from, from_bal - amount);
+        spend_balance(&env, &from, amount);
         Burn { from, amount }.publish(&env);
     }
 
@@ -258,11 +252,7 @@ impl Token {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
         admin.require_auth();
         require_non_negative(amount);
-        let from_bal = read_balance(&env, &from);
-        if from_bal < amount {
-            panic!("insufficient balance");
-        }
-        write_balance(&env, &from, from_bal - amount);
+        spend_balance(&env, &from, amount);
         Clawback { from, amount }.publish(&env);
     }
 
