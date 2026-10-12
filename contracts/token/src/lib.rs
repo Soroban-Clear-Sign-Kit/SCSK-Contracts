@@ -56,6 +56,9 @@ struct SetAuthorized {
     authorize: bool,
 }
 
+/// Upper bound on `decimals`, matching the Stellar Asset Contract.
+const MAX_DECIMALS: u32 = 18;
+
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
@@ -201,6 +204,9 @@ impl Token {
     pub fn initialize(env: Env, admin: Address, decimals: u32, name: String, symbol: String) {
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("already initialized");
+        }
+        if decimals > MAX_DECIMALS {
+            panic!("decimals too large");
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Decimals, &decimals);
@@ -951,5 +957,19 @@ mod test {
         client.mint(&owner, &5);
         client.approve(&owner, &spender, &100, &50);
         client.transfer_from(&spender, &owner, &spender, &6);
+    }
+
+    #[test]
+    #[should_panic(expected = "decimals too large")]
+    fn test_initialize_rejects_excessive_decimals() {
+        let env = Env::default();
+        let id = env.register(Token, ());
+        let client = TokenClient::new(&env, &id);
+        client.initialize(
+            &Address::generate(&env),
+            &19,
+            &String::from_str(&env, "Token"),
+            &String::from_str(&env, "TKN"),
+        );
     }
 }
