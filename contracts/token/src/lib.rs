@@ -900,4 +900,25 @@ mod test {
         client.transfer(&a, &a, &10);
         assert_eq!(client.balance(&a), 10);
     }
+
+    #[test]
+    fn test_approve_overwrites_previous_allowance() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let (owner, spender) = (Address::generate(&env), Address::generate(&env));
+        client.approve(&owner, &spender, &100, &50);
+        client.approve(&owner, &spender, &30, &60);
+        assert_eq!(client.allowance(&owner, &spender), 30);
+    }
+
+    #[test]
+    fn test_allowances_are_scoped_per_spender() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let owner = Address::generate(&env);
+        let (s1, s2) = (Address::generate(&env), Address::generate(&env));
+        client.approve(&owner, &s1, &100, &50);
+        assert_eq!(client.allowance(&owner, &s1), 100);
+        assert_eq!(client.allowance(&owner, &s2), 0);
+    }
 }
