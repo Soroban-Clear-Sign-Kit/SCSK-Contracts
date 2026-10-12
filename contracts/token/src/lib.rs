@@ -83,6 +83,13 @@ pub struct AllowanceValue {
     pub expiration_ledger: u32,
 }
 
+fn read_admin(env: &Env) -> Address {
+    env.storage()
+        .instance()
+        .get(&DataKey::Admin)
+        .expect("not initialized")
+}
+
 fn require_non_negative(amount: i128) {
     if amount < 0 {
         panic!("negative amount");
@@ -217,7 +224,7 @@ impl Token {
     }
 
     pub fn mint(env: Env, to: Address, amount: i128) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        let admin = read_admin(&env);
         admin.require_auth();
         require_non_negative(amount);
         receive_balance(&env, &to, amount);
@@ -241,7 +248,7 @@ impl Token {
     }
 
     pub fn clawback(env: Env, from: Address, amount: i128) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        let admin = read_admin(&env);
         admin.require_auth();
         require_non_negative(amount);
         spend_balance(&env, &from, amount);
@@ -249,14 +256,14 @@ impl Token {
     }
 
     pub fn set_admin(env: Env, new_admin: Address) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        let admin = read_admin(&env);
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &new_admin);
         SetAdmin { admin, new_admin }.publish(&env);
     }
 
     pub fn set_authorized(env: Env, id: Address, authorize: bool) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        let admin = read_admin(&env);
         admin.require_auth();
         env.storage()
             .persistent()
