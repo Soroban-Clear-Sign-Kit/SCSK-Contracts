@@ -833,4 +833,33 @@ mod test {
         assert_eq!(env.auths().last().unwrap().0, new_admin);
         assert_eq!(client.balance(&new_admin), 5);
     }
+
+    #[test]
+    fn test_metadata_matches_initialization() {
+        let env = Env::default();
+        let admin = Address::generate(&env);
+        let id = env.register(Token, ());
+        let client = TokenClient::new(&env, &id);
+        client.initialize(
+            &admin,
+            &18,
+            &String::from_str(&env, "Mock USDC"),
+            &String::from_str(&env, "USDC"),
+        );
+
+        assert_eq!(client.decimals(), 18);
+        assert_eq!(client.name(), String::from_str(&env, "Mock USDC"));
+        assert_eq!(client.symbol(), String::from_str(&env, "USDC"));
+    }
+
+    #[test]
+    fn test_metadata_defaults_when_uninitialized() {
+        let env = Env::default();
+        let id = env.register(Token, ());
+        let client = TokenClient::new(&env, &id);
+
+        assert_eq!(client.decimals(), 7);
+        assert_eq!(client.name(), String::from_str(&env, "Test Token"));
+        assert_eq!(client.symbol(), String::from_str(&env, "TST"));
+    }
 }
