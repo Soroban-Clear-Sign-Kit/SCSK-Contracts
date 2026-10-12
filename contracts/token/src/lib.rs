@@ -109,6 +109,13 @@ fn write_balance(env: &Env, id: &Address, amount: i128) {
         .set(&DataKey::Balance(id.clone()), &amount);
 }
 
+fn read_authorized(env: &Env, id: &Address) -> bool {
+    env.storage()
+        .persistent()
+        .get(&DataKey::State(id.clone()))
+        .unwrap_or(true)
+}
+
 fn spend_balance(env: &Env, id: &Address, amount: i128) {
     let balance = read_balance(env, id);
     if balance < amount {
@@ -287,6 +294,11 @@ impl Token {
             authorize,
         }
         .publish(&env);
+    }
+
+    /// Returns whether `id` may send or receive tokens. Accounts are authorized by default.
+    pub fn authorized(env: Env, id: Address) -> bool {
+        read_authorized(&env, &id)
     }
 
     pub fn balance(env: Env, id: Address) -> i128 {
@@ -617,5 +629,43 @@ mod test {
         env.ledger().set_sequence_number(50);
         client.approve(&owner, &spender, &0, &0);
         assert_eq!(client.allowance(&owner, &spender), 0);
+    }
+
+    #[test]
+    fn test_accounts_are_authorized_by_default() {
+        let env = Env::default();
+        let (client, _admin) = new_token(&env);
+        let user = Address::generate(&env);
+        assert!(client.authorized(&user));
+    }
+
+    #[test]
+    fn test_set_authorized_toggles_flag_and_emits_event() {
+        let env = Env::default();
+        let (client, admin) = new_token(&env);
+        let user = Address::generate(&env);
+
+        client.set_authorized(&user, &false);
+        assert_eq!(
+            env.events().all(),
+            soroban_sdk::vec![
+                &env,
+                (
+                    client.address.clone(),
+                    (
+                        Symbol::new(&env, "set_authorized"),
+                        admin.clone(),
+                        user.clone()
+                    )
+                        .into_val(&env),
+                    false.into_val(&env)
+                )
+            ]
+        );
+
+        assert!(!client.authorized(&user));
+
+        client.set_authorized(&user, &true);
+        assert!(client.authorized(&user));
     }
 }
