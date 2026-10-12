@@ -217,3 +217,22 @@ fn forward_many_is_all_or_nothing() {
     assert_eq!(s.token.balance(&s.to), 0);
     assert_eq!(s.token.balance(&other), 0);
 }
+
+#[test]
+fn forward_zero_amount_leaves_balances_unchanged() {
+    let s = setup(100);
+
+    s.client.forward(&s.from, &s.token.address, &s.to, &0);
+
+    assert_eq!(s.token.balance(&s.from), 100);
+    assert_eq!(s.token.balance(&s.to), 0);
+}
+
+#[test]
+fn forward_to_self_keeps_balance() {
+    let s = setup(100);
+
+    s.client.forward(&s.from, &s.token.address, &s.from, &40);
+
+    assert_eq!(s.token.balance(&s.from), 100);
+}
