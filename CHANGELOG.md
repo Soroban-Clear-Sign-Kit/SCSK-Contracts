@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `feat(values)`: Implemented comprehensive Soroban value types and multi-topic events in `contracts/values`:
+  - Functions accepting and returning nested `Vec`, nested `Map`, tuples, `Option`, enums with data, `Bytes`, `BytesN<32>`, `String`, `Symbol`, `Address`, `i128`, `u128`, `I256`, `U256`, `Duration`, and `Timepoint`.
+  - Emitted multi-topic events (3 to 4 topics) for every value type call.
+  - Comprehensive unit test suite with 18 tests asserting roundtrip values and emitted events.
+- `docs(values)`: Added `docs/VALUES-TYPES.md` documenting type coverage matrix, ScVal discriminants, event topic structures, and test verifications.
+- `chore(budget)`: Updated `size-budget.json` with a 9226-byte budget for `values.wasm`.
 - `feat(token)`: Implemented full SEP-41 token compliance for `contracts/token`:
   - Adopted standard `soroban-token-sdk` event definitions and topics (`Approve` with Vec payload `[amount, expiration_ledger]`, `TransferWithAmountOnly`, `Burn`, `MintWithAmountOnly`, `Clawback`).
   - Added strict error handling for negative amounts and expired allowances (`"expired allowance"`).
