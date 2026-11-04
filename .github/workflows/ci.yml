@@ -16,6 +16,7 @@ jobs:
       - run: cargo clippy --all-targets --locked -- -D warnings
 
   build-and-test:
+    name: Build, Test & Size Budget
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

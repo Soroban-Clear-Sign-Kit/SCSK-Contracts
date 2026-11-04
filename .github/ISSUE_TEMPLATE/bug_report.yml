@@ -1,0 +1,55 @@
+name: Bug Report
+description: Report an issue, broken contract behavior, or fixture discrepancy in SCSK-Contracts
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please check existing issues first to avoid duplicates.
+        **Note:** For security vulnerabilities, please consult [SECURITY.md](https://github.com/Soroban-Clear-Sign-Kit/SCSK-Contracts/blob/main/SECURITY.md) and report privately.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug.
+      placeholder: Describe the problem...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps or code needed to reproduce the behavior.
+      placeholder: |
+        1. Compile contract with ...
+        2. Run test case ...
+        3. See unexpected behavior ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment & Versions
+      description: Rust version, Stellar CLI version, soroban-sdk version, OS, etc.
+      placeholder: |
+        - OS: Windows / macOS / Linux
+        - Rust version: 1.80+
+        - soroban-sdk version: 27.0.6
+        - stellar-cli version: 22+
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any logs, terminal traces, or related links.
+    validations:
+      required: false

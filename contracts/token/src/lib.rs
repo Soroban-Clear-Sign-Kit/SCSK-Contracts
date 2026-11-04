@@ -1,44 +1,12 @@
 #![no_std]
 use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, String};
 
-#[contractevent(data_format = "single-value")]
-struct Transfer {
-    #[topic]
-    from: Address,
-    #[topic]
-    to: Address,
-    amount: i128,
-}
+const DAY_IN_LEDGERS: u32 = 17280;
+const INSTANCE_BUMP_AMOUNT: u32 = 7 * DAY_IN_LEDGERS;
+const INSTANCE_LIFETIME_THRESHOLD: u32 = INSTANCE_BUMP_AMOUNT - DAY_IN_LEDGERS;
 
-#[contractevent(data_format = "single-value")]
-struct Approve {
-    #[topic]
-    from: Address,
-    #[topic]
-    spender: Address,
-    data: (i128, u32),
-}
-
-#[contractevent(data_format = "single-value")]
-struct Mint {
-    #[topic]
-    to: Address,
-    amount: i128,
-}
-
-#[contractevent(data_format = "single-value")]
-struct Burn {
-    #[topic]
-    from: Address,
-    amount: i128,
-}
-
-#[contractevent(data_format = "single-value")]
-struct Clawback {
-    #[topic]
-    from: Address,
-    amount: i128,
-}
+const BALANCE_BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
+const BALANCE_LIFETIME_THRESHOLD: u32 = BALANCE_BUMP_AMOUNT - DAY_IN_LEDGERS;
 
 #[contractevent(data_format = "single-value")]
 struct SetAdmin {
@@ -228,6 +196,7 @@ impl Token {
         env.storage().instance().set(&DataKey::Decimals, &decimals);
         env.storage().instance().set(&DataKey::Name, &name);
         env.storage().instance().set(&DataKey::Symbol, &symbol);
+        extend_instance_ttl(&env);
     }
 
     pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
@@ -266,6 +235,11 @@ impl Token {
         if amount > 0 && expiration_ledger < env.ledger().sequence() {
             panic!("expiration ledger is in the past");
         }
+        if amount > 0 && expiration_ledger < env.ledger().sequence() {
+            panic!("expired allowance");
+        }
+        extend_instance_ttl(&env);
+
         write_allowance(&env, &from, &spender, amount, expiration_ledger);
         Approve {
             from,
@@ -311,6 +285,8 @@ impl Token {
     pub fn set_admin(env: Env, new_admin: Address) {
         let admin = read_admin(&env);
         admin.require_auth();
+        extend_instance_ttl(&env);
+
         env.storage().instance().set(&DataKey::Admin, &new_admin);
         SetAdmin { admin, new_admin }.publish(&env);
     }
@@ -340,10 +316,12 @@ impl Token {
     }
 
     pub fn balance(env: Env, id: Address) -> i128 {
+        extend_instance_ttl(&env);
         read_balance(&env, &id)
     }
 
     pub fn allowance(env: Env, from: Address, spender: Address) -> i128 {
+        extend_instance_ttl(&env);
         read_allowance(&env, &from, &spender).amount
     }
 
@@ -396,7 +374,6 @@ mod test {
             &String::from_str(&env, "TKN"),
         );
 
-        // Mint
         env.mock_all_auths();
         client.mint(&user1, &1000);
 
@@ -433,7 +410,7 @@ mod test {
         assert_eq!(client.balance(&user1), 800);
         assert_eq!(client.balance(&user2), 200);
 
-        // Approve
+        // Approve (SEP-41 specifies data = [amount, expiration_ledger] in vec format)
         client.approve(&user1, &user2, &500, &100);
         assert_eq!(
             env.events().all(),
@@ -486,7 +463,6 @@ mod test {
 
         // Burn from
         client.approve(&user2, &user1, &50, &100);
-        // Clear events from approve before checking burn_from
         env.events().all();
         client.burn_from(&user1, &user2, &50);
 
@@ -520,8 +496,156 @@ mod test {
             &String::from_str(&env, "TKN"),
         );
         env.mock_all_auths();
+
         client.mint(&user1, &100);
         client.transfer(&user1, &user2, &101);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient balance")]
+    fn test_transfer_from_above_balance() {
+        let env = Env::default();
+        let (client, _admin, user1, user2) = setup(&env);
+        env.mock_all_auths();
+
+        client.mint(&user1, &50);
+        client.approve(&user1, &user2, &500, &100);
+        // Allowance is sufficient (500 >= 100), but balance is only 50
+        client.transfer_from(&user2, &user1, &user2, &100);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient allowance")]
+    fn test_transfer_from_above_allowance() {
+        let env = Env::default();
+        let (client, _admin, user1, user2) = setup(&env);
+        env.mock_all_auths();
+
+        client.mint(&user1, &1000);
+        client.approve(&user1, &user2, &100, &100);
+        client.transfer_from(&user2, &user1, &user2, &101);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient balance")]
+    fn test_burn_above_balance() {
+        let env = Env::default();
+        let (client, _admin, user1, _user2) = setup(&env);
+        env.mock_all_auths();
+
+        client.mint(&user1, &50);
+        client.burn(&user1, &51);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient balance")]
+    fn test_burn_from_above_balance() {
+        let env = Env::default();
+        let (client, _admin, user1, user2) = setup(&env);
+        env.mock_all_auths();
+
+        client.mint(&user1, &50);
+        client.approve(&user1, &user2, &200, &100);
+        client.burn_from(&user2, &user1, &51);
+    }
+
+    #[test]
+    fn test_self_transfer() {
+        let env = Env::default();
+        let (client, _admin, user1, _user2) = setup(&env);
+        env.mock_all_auths();
+
+        client.mint(&user1, &300);
+        client.transfer(&user1, &user1, &100);
+        assert_eq!(client.balance(&user1), 300);
+    }
+
+    #[test]
+    #[should_panic(expected = "insufficient balance")]
+    fn test_self_transfer_insufficient_balance() {
+        let env = Env::default();
+        let (client, _admin, user1, _user2) = setup(&env);
+        env.mock_all_auths();
+
+        client.mint(&user1, &50);
+        client.transfer(&user1, &user1, &51);
+    }
+
+    #[test]
+    fn test_self_transfer_from() {
+        let env = Env::default();
+        let (client, _admin, user1, user2) = setup(&env);
+        env.mock_all_auths();
+
+        client.mint(&user1, &500);
+        client.approve(&user1, &user2, &200, &100);
+        client.transfer_from(&user2, &user1, &user1, &150);
+
+        assert_eq!(client.balance(&user1), 500);
+        assert_eq!(client.allowance(&user1, &user2), 50);
+    }
+
+    #[test]
+    #[should_panic(expected = "negative amount")]
+    fn test_negative_amount_transfer() {
+        let env = Env::default();
+        let (client, _admin, user1, user2) = setup(&env);
+        env.mock_all_auths();
+        client.transfer(&user1, &user2, &-1);
+    }
+
+    #[test]
+    #[should_panic(expected = "negative amount")]
+    fn test_negative_amount_transfer_from() {
+        let env = Env::default();
+        let (client, _admin, user1, user2) = setup(&env);
+        env.mock_all_auths();
+        client.transfer_from(&user2, &user1, &user2, &-1);
+    }
+
+    #[test]
+    #[should_panic(expected = "negative amount")]
+    fn test_negative_amount_approve() {
+        let env = Env::default();
+        let (client, _admin, user1, user2) = setup(&env);
+        env.mock_all_auths();
+        client.approve(&user1, &user2, &-1, &100);
+    }
+
+    #[test]
+    #[should_panic(expected = "negative amount")]
+    fn test_negative_amount_burn() {
+        let env = Env::default();
+        let (client, _admin, user1, _user2) = setup(&env);
+        env.mock_all_auths();
+        client.burn(&user1, &-1);
+    }
+
+    #[test]
+    #[should_panic(expected = "negative amount")]
+    fn test_negative_amount_burn_from() {
+        let env = Env::default();
+        let (client, _admin, user1, user2) = setup(&env);
+        env.mock_all_auths();
+        client.burn_from(&user2, &user1, &-1);
+    }
+
+    #[test]
+    #[should_panic(expected = "negative amount")]
+    fn test_negative_amount_mint() {
+        let env = Env::default();
+        let (client, _admin, user1, _user2) = setup(&env);
+        env.mock_all_auths();
+        client.mint(&user1, &-1);
+    }
+
+    #[test]
+    #[should_panic(expected = "negative amount")]
+    fn test_negative_amount_clawback() {
+        let env = Env::default();
+        let (client, _admin, user1, _user2) = setup(&env);
+        env.mock_all_auths();
+        client.clawback(&user1, &-1);
     }
 
     #[test]
@@ -565,8 +689,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "insufficient allowance")]
-    fn test_transfer_from_above_allowance() {
+    fn test_set_admin() {
         let env = Env::default();
         let admin = Address::generate(&env);
         let user1 = Address::generate(&env);
@@ -580,6 +703,8 @@ mod test {
             &String::from_str(&env, "TKN"),
         );
         env.mock_all_auths();
+
+        // Perform balance, allowance, and metadata calls
         client.mint(&user1, &1000);
         client.approve(&user1, &user2, &100, &100);
 

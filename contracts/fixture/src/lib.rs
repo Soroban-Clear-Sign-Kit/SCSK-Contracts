@@ -1,5 +1,20 @@
 #![no_std]
-use soroban_sdk::{Address, Env, String, Symbol, Vec, contract, contractimpl, contracttype, token};
+use soroban_sdk::auth::{
+    Context, ContractContext, CustomAccountInterface, InvokerContractAuthEntry,
+    SubContractInvocation,
+};
+use soroban_sdk::crypto::Hash;
+use soroban_sdk::{
+    Address, Env, IntoVal, String, Symbol, Val, Vec, contract, contracterror, contractevent,
+    contractimpl, contracttype, symbol_short, token,
+};
+
+#[contractevent(data_format = "single-value")]
+pub struct InnerEvent {
+    #[topic]
+    pub user: Address,
+    pub value: i128,
+}
 
 /// Optional metadata attached to a forwarding operation.
 #[contracttype]
@@ -19,35 +34,47 @@ pub enum Mode {
     Scheduled(u64),
 }
 
-/// A fixture contract that forwards tokens between accounts.
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum AccountError {
+    NotAuthorized = 1,
+}
+
+/// A custom account contract implementing `CustomAccountInterface` (`__check_auth`).
+#[contract]
+pub struct CustomAccount;
+
+#[contractimpl]
+impl CustomAccountInterface for CustomAccount {
+    type Signature = Val;
+    type Error = AccountError;
+
+    fn __check_auth(
+        _env: Env,
+        _signature_payload: Hash<32>,
+        _signatures: Self::Signature,
+        _auth_contexts: Vec<Context>,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
+/// A fixture contract that forwards tokens and exercises authorization scenarios.
 ///
-/// This contract is used primarily for testing authorization flows,
-/// nested contract calls, and complex parameter parsing in the Clear Sign Kit backend.
+/// This contract is used for testing authorization flows, nested authorization trees,
+/// contract-to-contract authorization, and custom user-defined types (UDTs).
 #[contract]
 pub struct Forwarder;
 
 #[contractimpl]
 impl Forwarder {
-    /// Forwards tokens from one address to another.
-    ///
-    /// Requires authorization from the `from` address.
-    ///
-    /// # Arguments
-    /// * `env` - The environment.
-    /// * `from` - The account sending the tokens.
-    /// * `token` - The contract ID of the token to transfer.
-    /// * `to` - The account receiving the tokens.
-    /// * `amount` - The amount of tokens to transfer.
+    /// Forwards tokens from one address to another using standard `require_auth`.
     pub fn forward(env: Env, from: Address, token: Address, to: Address, amount: i128) {
         do_transfer(&env, &from, &token, &to, &amount);
     }
 
-    /// Forwards tokens from one address to another, attaching metadata and a mode.
-    ///
-    /// Similar to `forward`, but accepts additional complex types (`Meta` and `Mode`)
-    /// to test the backend's ability to decode and format custom user-defined types (UDTs).
-    ///
-    /// Requires authorization from the `from` address.
+    /// Forwards tokens attaching complex metadata and mode types.
     pub fn forward_with_meta(
         env: Env,
         from: Address,
@@ -74,7 +101,7 @@ impl Forwarder {
     }
 }
 
-/// Helper function to perform the token transfer and enforce authorization.
+/// Helper function to perform token transfer with standard authorization.
 fn do_transfer(env: &Env, from: &Address, token: &Address, to: &Address, amount: &i128) {
     from.require_auth();
     token::Client::new(env, token).transfer(from, to, amount);

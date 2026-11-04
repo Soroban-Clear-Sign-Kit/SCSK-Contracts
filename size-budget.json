@@ -1,0 +1,4 @@
+{
+  "target/wasm32v1-none/release/fixture.wasm": 7150,
+  "target/wasm32v1-none/release/token.wasm": 8882
+}
