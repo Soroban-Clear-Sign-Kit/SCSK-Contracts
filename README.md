@@ -30,3 +30,22 @@ cargo build --target wasm32v1-none --release
 ```bash
 cargo test
 ```
+
+## Linting
+
+CI enforces formatting and clippy:
+
+```bash
+cargo fmt --all -- --check
+cargo clippy --all-targets --locked -- -D warnings
+```
+
+## Contract documentation
+
+- [`contracts/token`](contracts/token/README.md): SEP-41 token and mock USDC.
+- [`contracts/fixture`](contracts/fixture/README.md): `Forwarder` used for nested and wide auth trees.
+
+## Snapshots
+
+`cargo test` writes Soroban test snapshots to `contracts/*/test_snapshots`. They are committed so
+that changes to ledger state or auth are visible in review.

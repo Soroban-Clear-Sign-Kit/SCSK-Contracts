@@ -87,88 +87,17 @@ impl Forwarder {
         do_transfer(&env, &from, &token, &to, &amount);
     }
 
-    /// Forwards tokens using custom authorization arguments (`require_auth_for_args`).
+    /// Forwards the same `amount` from one address to every recipient in `tos`.
     ///
-    /// Demonstrates decoupling the top-level function arguments from the exact
-    /// parameters authorized by the principal.
-    pub fn forward_for_args(env: Env, from: Address, token: Address, to: Address, amount: i128) {
-        from.require_auth_for_args(
-            (
-                symbol_short!("forw_args"),
-                token.clone(),
-                to.clone(),
-                amount,
-            )
-                .into_val(&env),
-        );
-        token::Client::new(&env, &token).transfer(&from, &to, &amount);
-    }
-
-    /// Initiates a multi-contract call chain reaching depth 3+.
-    ///
-    /// Level 1: `chain_call` (requires `from` auth)
-    /// Level 2: `chain_step` on `relay` (requires `from` auth)
-    /// Level 3: `transfer` on `token` (requires `from` auth)
-    pub fn chain_call(
-        env: Env,
-        from: Address,
-        relay: Address,
-        token: Address,
-        to: Address,
-        amount: i128,
-    ) {
+    /// Requires a single authorization from `from`. The authorization tree gets one
+    /// nested `transfer` sub-invocation per recipient, which makes this useful for
+    /// testing wide (rather than deep) authorization trees.
+    pub fn forward_many(env: Env, from: Address, token: Address, tos: Vec<Address>, amount: i128) {
         from.require_auth();
-        ForwarderClient::new(&env, &relay).chain_step(&from, &token, &to, &amount);
-    }
-
-    /// Intermediate step in a multi-contract call chain.
-    pub fn chain_step(env: Env, from: Address, token: Address, to: Address, amount: i128) {
-        from.require_auth();
-        token::Client::new(&env, &token).transfer(&from, &to, &amount);
-    }
-
-    /// Exercises the same address authorizing at two distinct tree depths (Depth 1 and Depth 2).
-    pub fn dual_depth_auth(env: Env, user: Address, sub_contract: Address, value: i128) {
-        user.require_auth();
-        ForwarderClient::new(&env, &sub_contract).inner_action(&user, &value);
-    }
-
-    /// Sub-invocation target that requires authorization from the same user at Depth 2.
-    pub fn inner_action(env: Env, user: Address, value: i128) {
-        user.require_auth();
-        InnerEvent { user, value }.publish(&env);
-    }
-
-    /// Authorizes contract-to-contract calls on behalf of the current contract
-    /// using `env.authorize_as_current_contract`.
-    pub fn contract_transfer(
-        env: Env,
-        caller: Address,
-        relay: Address,
-        token: Address,
-        to: Address,
-        amount: i128,
-    ) {
-        caller.require_auth();
-        let current = env.current_contract_address();
-        env.authorize_as_current_contract(soroban_sdk::vec![
-            &env,
-            InvokerContractAuthEntry::Contract(SubContractInvocation {
-                context: ContractContext {
-                    contract: token.clone(),
-                    fn_name: symbol_short!("transfer"),
-                    args: (current.clone(), to.clone(), amount).into_val(&env),
-                },
-                sub_invocations: soroban_sdk::vec![&env],
-            }),
-        ]);
-        ForwarderClient::new(&env, &relay).execute_transfer(&current, &token, &to, &amount);
-    }
-
-    /// Executes a delegated transfer requiring authorization from the `spender` contract.
-    pub fn execute_transfer(env: Env, spender: Address, token: Address, to: Address, amount: i128) {
-        spender.require_auth();
-        token::Client::new(&env, &token).transfer(&spender, &to, &amount);
+        let client = token::Client::new(&env, &token);
+        for to in tos.iter() {
+            client.transfer(&from, &to, &amount);
+        }
     }
 }
 

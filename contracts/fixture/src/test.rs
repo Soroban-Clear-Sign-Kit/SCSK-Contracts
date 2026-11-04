@@ -142,52 +142,34 @@ fn forward_rejects_negative_amount() {
 }
 
 #[test]
-fn forward_for_args_requires_custom_args_with_nested_token_transfer() {
+fn forward_many_pays_every_recipient() {
     let s = setup(1_000);
+    let other = Address::generate(&s.env);
+    let tos = vec![&s.env, s.to.clone(), other.clone()];
 
-    s.client
-        .forward_for_args(&s.from, &s.token.address, &s.to, &250);
+    s.client.forward_many(&s.from, &s.token.address, &tos, &100);
 
-    assert_eq!(
-        s.env.auths(),
-        std::vec![(
-            s.from.clone(),
-            AuthorizedInvocation {
-                function: AuthorizedFunction::Contract((
-                    s.contract_id.clone(),
-                    Symbol::new(&s.env, "forward_for_args"),
-                    (
-                        symbol_short!("forw_args"),
-                        s.token.address.clone(),
-                        s.to.clone(),
-                        250_i128,
-                    )
-                        .into_val(&s.env),
-                )),
-                sub_invocations: std::vec![AuthorizedInvocation {
-                    function: AuthorizedFunction::Contract((
-                        s.token.address.clone(),
-                        symbol_short!("transfer"),
-                        (s.from.clone(), s.to.clone(), 250_i128).into_val(&s.env),
-                    )),
-                    sub_invocations: std::vec![],
-                }],
-            }
-        )]
-    );
-
-    assert_eq!(s.token.balance(&s.from), 750);
-    assert_eq!(s.token.balance(&s.to), 250);
+    assert_eq!(s.token.balance(&s.from), 800);
+    assert_eq!(s.token.balance(&s.to), 100);
+    assert_eq!(s.token.balance(&other), 100);
 }
 
 #[test]
-fn chain_call_creates_three_level_sub_invocation_tree() {
+fn forward_many_authorizes_one_transfer_per_recipient() {
     let s = setup(1_000);
-    let relay_id = s.env.register(Forwarder, ());
+    let other = Address::generate(&s.env);
+    let tos = vec![&s.env, s.to.clone(), other.clone()];
 
-    s.client
-        .chain_call(&s.from, &relay_id, &s.token.address, &s.to, &300);
+    s.client.forward_many(&s.from, &s.token.address, &tos, &10);
 
+    let transfer = |recipient: &Address| AuthorizedInvocation {
+        function: AuthorizedFunction::Contract((
+            s.token.address.clone(),
+            symbol_short!("transfer"),
+            (s.from.clone(), recipient.clone(), 10_i128).into_val(&s.env),
+        )),
+        sub_invocations: std::vec![],
+    };
     assert_eq!(
         s.env.auths(),
         std::vec![(
@@ -195,149 +177,100 @@ fn chain_call_creates_three_level_sub_invocation_tree() {
             AuthorizedInvocation {
                 function: AuthorizedFunction::Contract((
                     s.contract_id.clone(),
-                    Symbol::new(&s.env, "chain_call"),
+                    Symbol::new(&s.env, "forward_many"),
                     (
                         s.from.clone(),
-                        relay_id.clone(),
                         s.token.address.clone(),
-                        s.to.clone(),
-                        300_i128,
+                        tos.clone(),
+                        10_i128
                     )
                         .into_val(&s.env),
                 )),
-                sub_invocations: std::vec![AuthorizedInvocation {
-                    function: AuthorizedFunction::Contract((
-                        relay_id.clone(),
-                        Symbol::new(&s.env, "chain_step"),
-                        (
-                            s.from.clone(),
-                            s.token.address.clone(),
-                            s.to.clone(),
-                            300_i128,
-                        )
-                            .into_val(&s.env),
-                    )),
-                    sub_invocations: std::vec![AuthorizedInvocation {
-                        function: AuthorizedFunction::Contract((
-                            s.token.address.clone(),
-                            symbol_short!("transfer"),
-                            (s.from.clone(), s.to.clone(), 300_i128).into_val(&s.env),
-                        )),
-                        sub_invocations: std::vec![],
-                    }],
-                }],
-            }
-        )]
-    );
-
-    assert_eq!(s.token.balance(&s.from), 700);
-    assert_eq!(s.token.balance(&s.to), 300);
-}
-
-#[test]
-fn dual_depth_auth_records_same_address_at_two_depths() {
-    let s = setup(1_000);
-    let sub_id = s.env.register(Forwarder, ());
-
-    s.client.dual_depth_auth(&s.from, &sub_id, &500);
-
-    assert_eq!(
-        s.env.auths(),
-        std::vec![(
-            s.from.clone(),
-            AuthorizedInvocation {
-                function: AuthorizedFunction::Contract((
-                    s.contract_id.clone(),
-                    Symbol::new(&s.env, "dual_depth_auth"),
-                    (s.from.clone(), sub_id.clone(), 500_i128).into_val(&s.env),
-                )),
-                sub_invocations: std::vec![AuthorizedInvocation {
-                    function: AuthorizedFunction::Contract((
-                        sub_id.clone(),
-                        Symbol::new(&s.env, "inner_action"),
-                        (s.from.clone(), 500_i128).into_val(&s.env),
-                    )),
-                    sub_invocations: std::vec![],
-                }],
+                sub_invocations: std::vec![transfer(&s.to), transfer(&other)],
             }
         )]
     );
 }
 
 #[test]
-fn authorize_as_current_contract_delegates_to_relay() {
+fn forward_many_with_no_recipients_is_a_noop() {
     let s = setup(1_000);
-    let relay_id = s.env.register(Forwarder, ());
+    let tos: Vec<Address> = vec![&s.env];
 
-    // Mint tokens directly to the calling contract (Forwarder)
-    StellarAssetClient::new(&s.env, &s.token.address).mint(&s.contract_id, &500);
+    s.client.forward_many(&s.from, &s.token.address, &tos, &100);
 
-    s.client
-        .contract_transfer(&s.from, &relay_id, &s.token.address, &s.to, &150);
-
-    assert_eq!(
-        s.env.auths(),
-        std::vec![(
-            s.from.clone(),
-            AuthorizedInvocation {
-                function: AuthorizedFunction::Contract((
-                    s.contract_id.clone(),
-                    Symbol::new(&s.env, "contract_transfer"),
-                    (
-                        s.from.clone(),
-                        relay_id.clone(),
-                        s.token.address.clone(),
-                        s.to.clone(),
-                        150_i128,
-                    )
-                        .into_val(&s.env),
-                )),
-                sub_invocations: std::vec![],
-            }
-        )]
-    );
-
-    assert_eq!(s.token.balance(&s.contract_id), 350);
-    assert_eq!(s.token.balance(&s.to), 150);
+    assert_eq!(s.token.balance(&s.from), 1_000);
 }
 
 #[test]
-fn custom_account_authorizes_via_check_auth() {
-    let s = setup(1_000);
+fn forward_many_is_all_or_nothing() {
+    let s = setup(150);
+    let other = Address::generate(&s.env);
+    let tos = vec![&s.env, s.to.clone(), other.clone()];
 
-    let custom_acc = s.env.register(CustomAccount, ());
-    StellarAssetClient::new(&s.env, &s.token.address).mint(&custom_acc, &600);
+    let result = s
+        .client
+        .try_forward_many(&s.from, &s.token.address, &tos, &100);
 
-    s.client.forward(&custom_acc, &s.token.address, &s.to, &200);
+    assert!(result.is_err());
+    assert_eq!(s.token.balance(&s.from), 150);
+    assert_eq!(s.token.balance(&s.to), 0);
+    assert_eq!(s.token.balance(&other), 0);
+}
 
-    assert_eq!(
-        s.env.auths(),
-        std::vec![(
-            custom_acc.clone(),
-            AuthorizedInvocation {
-                function: AuthorizedFunction::Contract((
-                    s.contract_id.clone(),
-                    symbol_short!("forward"),
-                    (
-                        custom_acc.clone(),
-                        s.token.address.clone(),
-                        s.to.clone(),
-                        200_i128,
-                    )
-                        .into_val(&s.env),
-                )),
-                sub_invocations: std::vec![AuthorizedInvocation {
-                    function: AuthorizedFunction::Contract((
-                        s.token.address.clone(),
-                        symbol_short!("transfer"),
-                        (custom_acc.clone(), s.to.clone(), 200_i128).into_val(&s.env),
-                    )),
-                    sub_invocations: std::vec![],
-                }],
-            }
-        )]
+#[test]
+fn forward_zero_amount_leaves_balances_unchanged() {
+    let s = setup(100);
+
+    s.client.forward(&s.from, &s.token.address, &s.to, &0);
+
+    assert_eq!(s.token.balance(&s.from), 100);
+    assert_eq!(s.token.balance(&s.to), 0);
+}
+
+#[test]
+fn forward_to_self_keeps_balance() {
+    let s = setup(100);
+
+    s.client.forward(&s.from, &s.token.address, &s.from, &40);
+
+    assert_eq!(s.token.balance(&s.from), 100);
+}
+
+#[test]
+fn forward_with_meta_rejects_amount_above_balance() {
+    let s = setup(10);
+    let meta = Meta {
+        memo: String::from_str(&s.env, "too much"),
+        tags: vec![&s.env],
+    };
+
+    let result =
+        s.client
+            .try_forward_with_meta(&s.from, &s.token.address, &s.to, &11, &meta, &Mode::Fast);
+
+    assert!(result.is_err());
+    assert_eq!(s.token.balance(&s.from), 10);
+}
+
+#[test]
+fn forward_with_meta_requires_sender_auth() {
+    let s = setup(100);
+    let meta = Meta {
+        memo: String::from_str(&s.env, "memo"),
+        tags: vec![&s.env, symbol_short!("t")],
+    };
+
+    s.client.forward_with_meta(
+        &s.from,
+        &s.token.address,
+        &s.to,
+        &5,
+        &meta,
+        &Mode::Scheduled(9),
     );
 
-    assert_eq!(s.token.balance(&custom_acc), 400);
-    assert_eq!(s.token.balance(&s.to), 200);
+    let auths = s.env.auths();
+    assert_eq!(auths.len(), 1);
+    assert_eq!(auths[0].0, s.from);
 }
