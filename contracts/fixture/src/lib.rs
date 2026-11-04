@@ -67,4 +67,12 @@ fn do_transfer(env: &Env, from: &Address, token: &Address, to: &Address, amount:
     token::Client::new(env, token).transfer(from, to, amount);
 }
 
+#[allow(dead_code)]
+fn deliberate_warning() -> bool {
+    if true == true {
+        return true;
+    }
+    false
+}
+
 mod test;
