@@ -29,6 +29,20 @@ Build optimized release WASM binaries for the Soroban target:
 ```bash
 cargo build --target wasm32v1-none --release
 ```
+Or build using Stellar CLI (which also optimizes and strips contract bytecode):
+```bash
+stellar contract build
+```
+
+### WASM Size Budgets
+Soroban smart contracts are subject to on-chain size limits and resource fees. To ensure contracts remain lightweight and prevent regression bloat, this repository enforces a size budget for each compiled and optimized `.wasm` binary:
+
+- **Budget Configuration**: Tracked in [`size-budget.json`](file:///size-budget.json), initialized at the baseline optimized size + 10% headroom.
+- **Verification Script**: Run the verification script after building:
+  ```bash
+  python scripts/check-size-budget.py
+  ```
+- **CI Gate**: Continuous Integration checks the size of every compiled `.wasm` file on every pull request. If any contract exceeds its configured budget, CI fails. If a feature legitimately requires more bytecode, propose an explicit budget adjustment in your PR with rationale.
 
 ### Run Tests
 Execute the unit test suite:
