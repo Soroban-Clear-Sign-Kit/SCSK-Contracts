@@ -140,3 +140,204 @@ fn forward_rejects_negative_amount() {
     assert!(result.is_err());
     assert_eq!(s.token.balance(&s.from), 100);
 }
+
+#[test]
+fn forward_for_args_requires_custom_args_with_nested_token_transfer() {
+    let s = setup(1_000);
+
+    s.client
+        .forward_for_args(&s.from, &s.token.address, &s.to, &250);
+
+    assert_eq!(
+        s.env.auths(),
+        std::vec![(
+            s.from.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    s.contract_id.clone(),
+                    Symbol::new(&s.env, "forward_for_args"),
+                    (
+                        symbol_short!("forw_args"),
+                        s.token.address.clone(),
+                        s.to.clone(),
+                        250_i128,
+                    )
+                        .into_val(&s.env),
+                )),
+                sub_invocations: std::vec![AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        s.token.address.clone(),
+                        symbol_short!("transfer"),
+                        (s.from.clone(), s.to.clone(), 250_i128).into_val(&s.env),
+                    )),
+                    sub_invocations: std::vec![],
+                }],
+            }
+        )]
+    );
+
+    assert_eq!(s.token.balance(&s.from), 750);
+    assert_eq!(s.token.balance(&s.to), 250);
+}
+
+#[test]
+fn chain_call_creates_three_level_sub_invocation_tree() {
+    let s = setup(1_000);
+    let relay_id = s.env.register(Forwarder, ());
+
+    s.client
+        .chain_call(&s.from, &relay_id, &s.token.address, &s.to, &300);
+
+    assert_eq!(
+        s.env.auths(),
+        std::vec![(
+            s.from.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    s.contract_id.clone(),
+                    Symbol::new(&s.env, "chain_call"),
+                    (
+                        s.from.clone(),
+                        relay_id.clone(),
+                        s.token.address.clone(),
+                        s.to.clone(),
+                        300_i128,
+                    )
+                        .into_val(&s.env),
+                )),
+                sub_invocations: std::vec![AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        relay_id.clone(),
+                        Symbol::new(&s.env, "chain_step"),
+                        (
+                            s.from.clone(),
+                            s.token.address.clone(),
+                            s.to.clone(),
+                            300_i128,
+                        )
+                            .into_val(&s.env),
+                    )),
+                    sub_invocations: std::vec![AuthorizedInvocation {
+                        function: AuthorizedFunction::Contract((
+                            s.token.address.clone(),
+                            symbol_short!("transfer"),
+                            (s.from.clone(), s.to.clone(), 300_i128).into_val(&s.env),
+                        )),
+                        sub_invocations: std::vec![],
+                    }],
+                }],
+            }
+        )]
+    );
+
+    assert_eq!(s.token.balance(&s.from), 700);
+    assert_eq!(s.token.balance(&s.to), 300);
+}
+
+#[test]
+fn dual_depth_auth_records_same_address_at_two_depths() {
+    let s = setup(1_000);
+    let sub_id = s.env.register(Forwarder, ());
+
+    s.client.dual_depth_auth(&s.from, &sub_id, &500);
+
+    assert_eq!(
+        s.env.auths(),
+        std::vec![(
+            s.from.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    s.contract_id.clone(),
+                    Symbol::new(&s.env, "dual_depth_auth"),
+                    (s.from.clone(), sub_id.clone(), 500_i128).into_val(&s.env),
+                )),
+                sub_invocations: std::vec![AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        sub_id.clone(),
+                        Symbol::new(&s.env, "inner_action"),
+                        (s.from.clone(), 500_i128).into_val(&s.env),
+                    )),
+                    sub_invocations: std::vec![],
+                }],
+            }
+        )]
+    );
+}
+
+#[test]
+fn authorize_as_current_contract_delegates_to_relay() {
+    let s = setup(1_000);
+    let relay_id = s.env.register(Forwarder, ());
+
+    // Mint tokens directly to the calling contract (Forwarder)
+    StellarAssetClient::new(&s.env, &s.token.address).mint(&s.contract_id, &500);
+
+    s.client
+        .contract_transfer(&s.from, &relay_id, &s.token.address, &s.to, &150);
+
+    assert_eq!(
+        s.env.auths(),
+        std::vec![(
+            s.from.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    s.contract_id.clone(),
+                    Symbol::new(&s.env, "contract_transfer"),
+                    (
+                        s.from.clone(),
+                        relay_id.clone(),
+                        s.token.address.clone(),
+                        s.to.clone(),
+                        150_i128,
+                    )
+                        .into_val(&s.env),
+                )),
+                sub_invocations: std::vec![],
+            }
+        )]
+    );
+
+    assert_eq!(s.token.balance(&s.contract_id), 350);
+    assert_eq!(s.token.balance(&s.to), 150);
+}
+
+#[test]
+fn custom_account_authorizes_via_check_auth() {
+    let s = setup(1_000);
+
+    let custom_acc = s.env.register(CustomAccount, ());
+    StellarAssetClient::new(&s.env, &s.token.address).mint(&custom_acc, &600);
+
+    s.client.forward(&custom_acc, &s.token.address, &s.to, &200);
+
+    assert_eq!(
+        s.env.auths(),
+        std::vec![(
+            custom_acc.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    s.contract_id.clone(),
+                    symbol_short!("forward"),
+                    (
+                        custom_acc.clone(),
+                        s.token.address.clone(),
+                        s.to.clone(),
+                        200_i128,
+                    )
+                        .into_val(&s.env),
+                )),
+                sub_invocations: std::vec![AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        s.token.address.clone(),
+                        symbol_short!("transfer"),
+                        (custom_acc.clone(), s.to.clone(), 200_i128).into_val(&s.env),
+                    )),
+                    sub_invocations: std::vec![],
+                }],
+            }
+        )]
+    );
+
+    assert_eq!(s.token.balance(&custom_acc), 400);
+    assert_eq!(s.token.balance(&s.to), 200);
+}
