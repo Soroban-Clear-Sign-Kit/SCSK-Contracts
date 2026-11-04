@@ -7,10 +7,46 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  fmt:
+    name: Formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: rustup target add wasm32v1-none
-      - run: cargo build --release --target wasm32v1-none
-      - run: cargo test
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets -- -D warnings
+
+  build-and-test:
+    name: Build, Test & Size Budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          targets: wasm32v1-none
+      - name: Install Stellar CLI
+        run: |
+          curl -fsSL https://github.com/stellar/stellar-cli/raw/main/install.sh | sh
+          echo "$HOME/.stellar/bin" >> $GITHUB_PATH
+      - uses: Swatinem/rust-cache@v2
+      - name: Run Tests
+        run: cargo test
+      - name: Build Contracts
+        run: stellar contract build
+      - name: Verify WASM Size Budget
+        run: python scripts/check-size-budget.py
