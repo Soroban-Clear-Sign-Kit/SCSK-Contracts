@@ -1,0 +1,38 @@
+name: Feature Request
+description: Propose a new contract fixture, test scenario, or verification capability
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest an enhancement or new fixture scenario for Soroban Clear-Sign Kit testing.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: Is your feature request related to a specific clear-signing scenario or gap in coverage?
+      placeholder: Describe the motivation...
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution or Scenario
+      description: Describe the contract function, authorization scenario, or fixture capture needed.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative implementations or workarounds considered.
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Links to Soroban docs, SEPs, or relevant specs.
+    validations:
+      required: false

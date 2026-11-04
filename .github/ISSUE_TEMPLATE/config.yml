@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability Reporting
+    url: https://github.com/Soroban-Clear-Sign-Kit/SCSK-Contracts/security/advisories/new
+    about: Please report security vulnerabilities confidentially through GitHub Security Advisories.
+  - name: General Questions & Discussion
+    url: https://github.com/Soroban-Clear-Sign-Kit/SCSK-Contracts/discussions
+    about: Ask questions, share ideas, or discuss the Soroban Clear-Sign Kit.
