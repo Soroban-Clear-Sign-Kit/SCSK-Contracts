@@ -12,3 +12,4 @@ soroban-token-sdk = { version = "27", default-features = false }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+proptest = "1"
