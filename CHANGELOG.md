@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `test(token)`: Added property-based test suite using `proptest` proving token invariants across 256 cases per property:
+  - Total supply conservation across arbitrary `transfer`, `burn`, and `transfer_from` sequences.
+  - Balances never go negative under arbitrary operations and amounts.
+  - Allowance never increases on `transfer_from` calls.
+  - Failed calls leave contract state completely unchanged (atomic rollback).
+- `docs(token)`: Updated `docs/SEP41-COMPLIANCE.md` with property-based testing invariant matrix and verification details.
 - `feat(risky)`: Implemented benign test-only contract `contracts/risky` demonstrating high-risk patterns and bounds testing:
   - Functions exercising unlimited approval (`i128::MAX`), fresh spender approvals, single-step admin transfers (`set_admin`), in-place contract bytecode upgrades (`update_current_contract_wasm`), very large transfers, and oversize/deeply-nested arguments for protocol bounds.
   - Multi-topic events emitted for every pattern invocation.
