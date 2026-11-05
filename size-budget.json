@@ -1,5 +1,6 @@
 {
   "target/wasm32v1-none/release/fixture.wasm": 7150,
+  "target/wasm32v1-none/release/risky.wasm": 7016,
   "target/wasm32v1-none/release/token.wasm": 8882,
   "target/wasm32v1-none/release/values.wasm": 9226
 }
