@@ -992,3 +992,6 @@ mod test {
         assert_eq!(client.symbol(), String::from_str(&env, "TKN"));
     }
 }
+
+#[cfg(test)]
+mod properties;

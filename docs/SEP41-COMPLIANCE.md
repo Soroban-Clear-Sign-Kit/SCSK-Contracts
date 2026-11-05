@@ -115,3 +115,17 @@ const BALANCE_LIFETIME_THRESHOLD: u32 = BALANCE_BUMP_AMOUNT - DAY_IN_LEDGERS; //
   - Requires balance $\ge$ amount (fails with `"insufficient balance"` if balance is insufficient).
   - Emits the standard `Transfer` event.
   - Extends entry TTL in storage.
+
+---
+
+## 5. Property-Based Testing Invariants
+
+In addition to hand-written unit tests, `contracts/token` is verified with property-based tests via `proptest` (configured for at least 256 test cases per property):
+
+| Invariant Property | Test Name | Cases | Description |
+| :--- | :--- | :--- | :--- |
+| **Total Supply Conservation** | `prop_total_supply_conserved` | 256 | Sum of all account balances plus cumulative burned amount strictly equals initial minted supply across arbitrary action sequences. |
+| **Non-Negative Balances** | `prop_balances_never_go_negative` | 256 | No sequence of operations (including negative amounts or amounts exceeding balance) can ever result in negative account balances. |
+| **Non-Increasing Allowance** | `prop_allowance_never_increases_on_transfer_from` | 256 | Invoking `transfer_from` never increases allowance; on success it decrements by exact amount, and on failure allowance remains unchanged. |
+| **Failed Call Atomicity** | `prop_failed_calls_leave_state_unchanged` | 256 | Any failed or reverted contract call leaves all balances and allowances strictly identical to pre-call snapshots. |
+
