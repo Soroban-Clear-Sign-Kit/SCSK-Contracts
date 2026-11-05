@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `feat(risky)`: Implemented benign test-only contract `contracts/risky` demonstrating high-risk patterns and bounds testing:
+  - Functions exercising unlimited approval (`i128::MAX`), fresh spender approvals, single-step admin transfers (`set_admin`), in-place contract bytecode upgrades (`update_current_contract_wasm`), very large transfers, and oversize/deeply-nested arguments for protocol bounds.
+  - Multi-topic events emitted for every pattern invocation.
+  - Complete unit test suite with 8 tests asserting outcomes, state updates, and event payloads.
+- `docs(risky)`: Added `docs/RISK-PATTERNS.md` describing each pattern, why it is risky, SCSK detection heuristics, and recommended safe alternatives.
+- `chore(budget)`: Updated `size-budget.json` with a 7016-byte budget for `risky.wasm`.
 - `feat(values)`: Implemented comprehensive Soroban value types and multi-topic events in `contracts/values`:
   - Functions accepting and returning nested `Vec`, nested `Map`, tuples, `Option`, enums with data, `Bytes`, `BytesN<32>`, `String`, `Symbol`, `Address`, `i128`, `u128`, `I256`, `U256`, `Duration`, and `Timepoint`.
   - Emitted multi-topic events (3 to 4 topics) for every value type call.
