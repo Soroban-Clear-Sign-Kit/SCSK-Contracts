@@ -10,7 +10,11 @@ This repository contains Soroban smart contracts used for testing, verifying, an
 ├── contracts/
 │   ├── fixture/          # Captures nested auth scenarios for Clear-Sign Kit testing
 │   ├── risky/            # [TEST-ONLY] Benign contracts demonstrating risky patterns and bounds
-│   └── token/            # Minimal SEP-41 token implementation and mock USDC
+│   ├── token/            # Minimal SEP-41 token implementation and mock USDC
+│   └── values/           # Full ScVal and event type coverage testing contract
+├── docs/                 # Specifications, risk patterns, and verifiable deployments
+├── fixtures/             # Versioned test fixture suite and JSON scenarios
+├── scripts/              # Size budget checks and deployment automation
 └── README.md
 ```
 
@@ -35,3 +39,18 @@ cargo build --target wasm32v1-none --release
 ```bash
 cargo test
 ```
+
+## Deployments
+
+All contracts are deployed and verified on Stellar Testnet. For deployed contract addresses, Wasm bytecode hashes, deployment dates, and read-only verification CLI commands, see:
+
+👉 [**docs/DEPLOYMENTS.md**](docs/DEPLOYMENTS.md)
+
+Deployments can be reproduced using `scripts/deploy-testnet.sh` with a testnet secret key supplied via environment variable:
+
+```bash
+export DEPLOYER_SECRET_KEY="S..."
+export ADMIN_ADDRESS="G..."
+./scripts/deploy-testnet.sh
+```
+
