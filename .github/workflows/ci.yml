@@ -46,6 +46,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Run Tests
         run: cargo test
+      - name: Verify Reproducible Fixtures
+        run: |
+          cargo test --package fixture generate_and_verify_reproducible_fixtures
+          git diff --exit-code fixtures/
       - name: Build Contracts
         run: stellar contract build
       - name: Verify WASM Size Budget

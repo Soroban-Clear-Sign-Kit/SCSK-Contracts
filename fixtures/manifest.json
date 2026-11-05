@@ -1,104 +1,40 @@
 {
-  "cases": {
-    "sac-transfer": {
-      "captured": false,
-      "expectedRisk": "ok",
-      "expectedWarnings": []
+  "schema_version": "1.0.0",
+  "files": {
+    "01_standard_require_auth.json": {
+      "sha256": "0e115f0dd431e6d9406658605549e661563843765c882d4555ba8bc1f89dd995",
+      "scenario_id": "01_standard_require_auth",
+      "description": "Standard Authorization: require_auth"
     },
-    "token-transfer": {
-      "captured": false,
-      "expectedRisk": "ok",
-      "expectedWarnings": []
+    "02_custom_args_auth.json": {
+      "sha256": "cd396109bc4b50870e1c8113e000851ab9f8fae53f02d057f832cb5a22163170",
+      "scenario_id": "02_custom_args_auth",
+      "description": "Custom Arguments Authorization: require_auth_for_args"
     },
-    "lookalike-transfer": {
-      "captured": false,
-      "expectedRisk": "ok",
-      "expectedWarnings": []
+    "03_three_level_chain.json": {
+      "sha256": "f9c366f5623c1d8ab0c2d73033b5958ca3d7ffaacda53aef8cf2a22d3714d597",
+      "scenario_id": "03_three_level_chain",
+      "description": "3+ Level Sub-Invocation Chain"
     },
-    "forward": {
-      "captured": false,
-      "expectedRisk": "review",
-      "expectedWarnings": ["AUTH_EXTRA_CONTRACT"]
+    "04_dual_depth_auth.json": {
+      "sha256": "781477315318da728008d4ad4e8e5a2669ce281b4345db8f26a7eeaee46bbab6",
+      "scenario_id": "04_dual_depth_auth",
+      "description": "Same Address at Multiple Depths"
     },
-    "forward-intent": {
-      "captured": false,
-      "expectedRisk": "ok",
-      "expectedWarnings": []
+    "05_contract_delegation.json": {
+      "sha256": "bb179974b8bf2ed85f260c2cc1eb5a9282e0044041ee3540a6e04188de14a647",
+      "scenario_id": "05_contract_delegation",
+      "description": "Contract-to-Contract Delegation"
     },
-    "forward-with-meta": {
-      "captured": false,
-      "expectedRisk": "ok",
-      "expectedWarnings": []
+    "06_custom_smart_account_auth.json": {
+      "sha256": "0a895e9e1c6069e9e37e036034c17839719679754c742c64445c0424b4c799f7",
+      "scenario_id": "06_custom_smart_account_auth",
+      "description": "Custom Smart Account Authorization"
     },
-    "sac-approve": {
-      "captured": false,
-      "expectedRisk": "review",
-      "expectedWarnings": ["ALLOWANCE_GRANTED"]
-    },
-    "sac-approve-intent": {
-      "captured": false,
-      "expectedRisk": "ok",
-      "expectedWarnings": []
-    },
-    "signed-wrong-network": {
-      "captured": false,
-      "expectedRisk": "blocked",
-      "expectedWarnings": ["SIGNATURE_INVALID"]
-    },
-    "auth-expired": {
-      "captured": false,
-      "expectedRisk": "blocked",
-      "expectedWarnings": ["AUTH_EXPIRED"]
-    },
-    "auth-unsigned-entry": {
-      "captured": false,
-      "expectedRisk": "review",
-      "expectedWarnings": ["AUTH_EXTRA_CONTRACT"]
-    },
-    "auth-entry-preimage": {
-      "captured": false,
-      "expectedRisk": "review",
-      "expectedWarnings": ["AUTH_EXTRA_CONTRACT"]
-    },
-    "sim-failure": {
-      "captured": false,
-      "expectedRisk": "blocked",
-      "expectedWarnings": ["SIMULATION_FAILED"]
-    },
-    "fee-bump": {
-      "captured": false,
-      "expectedRisk": "ok",
-      "expectedWarnings": []
-    },
-    "classic-payment": {
-      "captured": false,
-      "expectedRisk": "review",
-      "expectedWarnings": ["CLASSIC_OP_NOT_DECODED"]
-    },
-    "syn-silent-transfer": {
-      "captured": false,
-      "expectedRisk": "review",
-      "expectedWarnings": ["EFFECT_EVENT_MISSING"]
-    },
-    "syn-map-event": {
-      "captured": false,
-      "expectedRisk": "ok",
-      "expectedWarnings": []
-    },
-    "syn-duplicate-nonce": {
-      "captured": false,
-      "expectedRisk": "blocked",
-      "expectedWarnings": ["AUTH_DUPLICATE_NONCE"]
-    },
-    "syn-rpc-network": {
-      "captured": false,
-      "expectedRisk": "blocked",
-      "expectedWarnings": ["NETWORK_MISMATCH"]
-    },
-    "syn-no-contract": {
-      "captured": false,
-      "expectedRisk": "blocked",
-      "expectedWarnings": ["CONTRACT_NOT_FOUND"]
+    "07_forward_with_meta.json": {
+      "sha256": "ad725d3f4a8a3c477c6907f82dd5e8cff305c67a2af07b361d5c596dc232997e",
+      "scenario_id": "07_forward_with_meta",
+      "description": "Forwarding with Custom Types (Struct & Enum)"
     }
   }
 }

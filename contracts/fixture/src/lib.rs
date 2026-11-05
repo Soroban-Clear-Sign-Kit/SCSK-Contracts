@@ -178,4 +178,6 @@ fn do_transfer(env: &Env, from: &Address, token: &Address, to: &Address, amount:
     token::Client::new(env, token).transfer(from, to, amount);
 }
 
+#[cfg(test)]
+mod generator;
 mod test;

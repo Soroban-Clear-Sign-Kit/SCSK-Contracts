@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `feat(fixtures)`: Implemented deterministic test fixture generation suite in `contracts/fixture/src/generator.rs`:
+  - Produces versioned, reproducible test data covering 7 authorization scenarios and user-defined types.
+  - Generates unsigned Stellar transaction envelope XDR (base64), authorization credentials, expected contract event streams, and human-readable analysis summaries.
+  - Computes exact SHA-256 integrity checksums for each fixture in `fixtures/manifest.json` (`schema_version: "1.0.0"`).
+  - Added CI verification step in `.github/workflows/ci.yml` that regenerates fixtures and asserts zero git diff.
+- `docs(fixtures)`: Added `fixtures/README.md` documenting fixture reproducibility, schema definitions for `manifest.json` and scenario files, and scenario catalog.
 - `test(token)`: Added property-based test suite using `proptest` proving token invariants across 256 cases per property:
   - Total supply conservation across arbitrary `transfer`, `burn`, and `transfer_from` sequences.
   - Balances never go negative under arbitrary operations and amounts.
