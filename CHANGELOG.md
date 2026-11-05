@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `docs(architecture)`: Added comprehensive architecture documentation and contributor clean-clone walkthrough in `ARCHITECTURE.md`:
+  - Detailed system objectives, contract architecture, and execution roles for `contracts/token`, `contracts/fixture`, `contracts/risky`, and `contracts/values`.
+  - Documented fixture generation and integrity verification pipeline (`generator.rs`, JSON scenario outputs, and `manifest.json` SHA-256 checks).
+  - Provided a step-by-step clean-clone walkthrough enabling new contributors to clone, build, test, check size budgets, and regenerate fixtures without external guidance.
+  - Added repository project map and navigation table in `README.md`.
+- `feat(deploy)`: Published verifiable Stellar testnet deployments and automation:
+  - Deployed `token`, `values`, `risky`, and `fixture` contracts to Stellar Testnet.
+  - Implemented `scripts/deploy-testnet.sh` reading signing keys strictly from environment variables (`DEPLOYER_SECRET_KEY` / `STELLAR_SECRET_KEY`).
+  - Added `docs/DEPLOYMENTS.md` documenting live contract IDs, Wasm bytecode hashes, deployment dates, and CLI read-only verification queries.
+  - Enforced strict repository secret detection ensuring 0 secret keys exist in the working tree or commit history.
 - `feat(fixtures)`: Implemented deterministic test fixture generation suite in `contracts/fixture/src/generator.rs`:
   - Produces versioned, reproducible test data covering 7 authorization scenarios and user-defined types.
   - Generates unsigned Stellar transaction envelope XDR (base64), authorization credentials, expected contract event streams, and human-readable analysis summaries.
