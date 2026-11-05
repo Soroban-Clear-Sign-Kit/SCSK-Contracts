@@ -54,6 +54,20 @@ fn forward_moves_tokens_between_accounts() {
 }
 
 #[test]
+fn test_determinism_across_envs() {
+    let env1 = Env::default();
+    let a1 = Address::generate(&env1);
+    let a2 = Address::generate(&env1);
+
+    let env2 = Env::default();
+    let b1 = Address::generate(&env2);
+    let b2 = Address::generate(&env2);
+
+    assert_eq!(a1, b1);
+    assert_eq!(a2, b2);
+}
+
+#[test]
 fn forward_requires_sender_auth_with_nested_token_transfer() {
     let s = setup(1_000);
 
